@@ -303,6 +303,12 @@ export default function MatchPage() {
                             </div>
                         </ForegroundCard>
                     </div>
+                    {
+                        message ?
+                        <div className=" mt-5 w-5/6 lg:w-1/2 p-3 bg-red-700/25 border rounded-md border-zinc-300/50">
+                            <p className="text-subtext">{message}</p>
+                        </div> : <></>
+                    }
                     <div className="w-5/6 lg:w-1/2 mt-5">
                     {
                         match.status == "active" && match.user.id == user.id ? (

@@ -265,6 +265,12 @@ export default function MatchPrep() {
                             toggle={toggle}
                             />
 
+                            {
+                                error ?
+                                <div className="mt-3 p-3 bg-red-700/25 border rounded-md border-zinc-300/50">
+                                    <p className="text-subtext">{error}</p>
+                                </div> : <></>
+                            }
                             <ForegroundCard className="mt-5">
                                 <div className="flex justify-between items-center">
                                     <div>
