@@ -47,7 +47,16 @@ export default function Layout() {
                 </div>
                 <DisclosurePanel transition className="flex flex-col transition ease-out data-closed:opacity-0 data-closed:-translate-y-2">
                     <Disclosure>
-                        {
+                    {activeMatch ? (
+                        !onMatchPage && (
+                            <Link
+                            to={`/match/${activeMatch.id}`}
+                            className="flex items-center gap-2 text-red-600 hover:text-red-400 transition-colors duration-150"
+                            >
+                                Return to Active Match
+                            </Link>
+                        )
+                        ) :
                             canQueue.can_queue ?
                             <>
                                 <DisclosureButton className="group focus:outline-none flex items-center gap-2 hover:text-highlight transition-colors duration-150 py-2">
