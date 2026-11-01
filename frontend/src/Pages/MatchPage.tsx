@@ -12,6 +12,7 @@ import ForegroundCard from "../Components/General/ForegroundCard";
 import ProgressBar from "../Components/General/ProgressBar";
 import { toFixedTruncated } from "../util/helpers";
 import ScoreSummary from "../Components/Match/ScoreSummary";
+import { useActiveMatch } from "../hooks/useActiveMatch";
 
 export default function MatchPage() {
 
@@ -20,6 +21,8 @@ export default function MatchPage() {
     const {user, loading} = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
+
+    const { refreshActiveMatch } = useActiveMatch();
 
     const [status, setStatus] = useState<SubmitStatus>("idle");
     const [message, setMessage] = useState<string | null>(null);
@@ -112,6 +115,8 @@ export default function MatchPage() {
             if (!finalizedMatch.result)
                 return;
 
+            await refreshActiveMatch();
+
             setShowWin(true)
             setMatchResult(finalizedMatch.result)
             setMatch(finalizedMatch);
@@ -130,6 +135,8 @@ export default function MatchPage() {
         })
         .catch(err => console.log(err))
     }
+
+    console.log(match)
 
     return (
         <div className="w-full flex-1 flex flex-col">
