@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from "react-router"
+import { createBrowserRouter, Outlet, RouterProvider } from "react-router"
 
 import "@fontsource/sanchez"
 import "@fontsource/archivo-black"
@@ -19,6 +19,16 @@ import MatchPage from './Pages/MatchPage.tsx'
 import { TierProvider } from './hooks/useTiers.tsx'
 import ProfilePage from './Pages/ProfilePage.tsx'
 import OnboardingPage from './Pages/OnboardingPage.tsx'
+import { ActiveMatchProvider } from './hooks/useActiveMatch.tsx'
+
+// Has to be done to use useActiveMatch within layout. ActiveMatchProvider has to be within Router for useLocation, so we can refresha activematch upon route switch.
+function ActiveMatchRoute() {
+  return (
+    <ActiveMatchProvider>
+      <Outlet/>
+    </ActiveMatchProvider>
+  )
+}
 
 const router = createBrowserRouter([
   {
@@ -38,14 +48,21 @@ const router = createBrowserRouter([
         element: <RequireOnboarded />,
         children: [
           {
-            path: "/",
-            element: <Layout />,
+            element: <ActiveMatchRoute />,
             children: [
-              { index: true, element: <HomePage />},
-              { path: "prep/:game/:playtype/:ladder", element: <MatchPrep />},
-              { path: "match/:id", element: <MatchPage />},
-              { path: "/profile/:id", element: <ProfilePage /> }
+              {
+                path: "/",
+                element: <Layout />,
+                children: [
+                  { index: true, element: <HomePage />},
+                  { path: "prep/:game/:playtype/:ladder", element: <MatchPrep />},
+                  { path: "match/:id", element: <MatchPage />},
+                  { path: "/profile/:id", element: <ProfilePage /> }
+                ]
+              }
+
             ]
+
           }
         ]
       }
@@ -61,6 +78,5 @@ createRoot(document.getElementById('root')!).render(
         <RouterProvider router={router}/>
       </AuthProvider>
     </TierProvider>
-
   </StrictMode>,
 )

@@ -9,13 +9,14 @@ import { useAuth } from "./hooks/useAuth";
 import { useEffect, useState } from "react";
 import { type CanQueue, type Match } from "./util/NetworkModels";
 import { api } from "./util/helpers";
+import { ActiveMatchProvider, useActiveMatch } from "./hooks/useActiveMatch";
 
 export default function Layout() {
 
     const {user, loading} = useAuth();
     const onMatchPage = useMatch("/match/:id");
+    const { activeMatch } = useActiveMatch();
 
-    const [activeMatch, setActiveMatch] = useState<Match | null>();
     const [canQueue, setCanQueue] = useState<CanQueue>({can_queue: false});
 
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
@@ -24,32 +25,26 @@ export default function Layout() {
     useEffect(() => {
 
         Promise.all([
-        api<Match | null>("/users/me/active-match"),
         api<CanQueue>("/users/me/can-queue")
         ])
-        .then(([match, can_queue]) => {
-            setActiveMatch(match)
+        .then(([can_queue]) => {
             setCanQueue(can_queue)
         })
     }, [user])
 
     return (
         <div className="min-h-dvh flex flex-col">
-
             <Disclosure key={location.pathname} as="nav" className="font-sanchez bg-background-dark lg:hidden font-bold tracking-wider p-7 border-b border-highlight items-center">
                 <div className="flex flex-row gap-20 items-center p-4">
                     <Link to="/" className="mr-auto flex flex-row items-center gap-2">
                             <img src={arcadiumIconLogo} alt="Arcadium Icon" className="h-15"/>
                             <img src={arcadiumTextLogo} alt="Arcadium Text" className="h-16" />
                     </Link>
-
                     <DisclosureButton className="group p-2">
                         <MenuIcon className="size-6 group-data-open:hidden"/>
                         <X className="size-6 hidden group-data-open:block"/>
                     </DisclosureButton>
                 </div>
-
-
                 <DisclosurePanel transition className="flex flex-col transition ease-out data-closed:opacity-0 data-closed:-translate-y-2">
                     <Disclosure>
                         {
@@ -58,43 +53,35 @@ export default function Layout() {
                                 <DisclosureButton className="group focus:outline-none flex items-center gap-2 hover:text-highlight transition-colors duration-150 py-2">
                                 Queue <ChevronDown className="size-6 scale-x-90 group-data-open:rotate-180 transition-transform duration-200" />
                                 </DisclosureButton>
-
                                 <DisclosurePanel className="flex flex-col pl-4 py-1">
                                         <Link to="/prep/bms/7k/ec" className="block duration-150 py-2">7K Easy Clear</Link>
                                         <Link to="/prep/bms/7k/hc" className="block duration-150 py-2">7K Hard Clear</Link>
                                 </DisclosurePanel>
                             </> : <></>
-
                         }
                     </Disclosure>
-
                     <Disclosure>
                         <DisclosureButton className="group focus:outline-none flex items-center gap-2 hover:text-highlight transition-colors duration-150 py-2">
                         Rankings <ChevronDown className="size-6 scale-x-90 group-data-open:rotate-180 transition-transform duration-200" />
                         </DisclosureButton>
-
                         <DisclosurePanel className="flex flex-col pl-4 py-1">
                                 <Link to="#" className="block duration-150 py-2">Players</Link>
                                 <Link to="#" className="block duration-150 py-2">Charts</Link>
                         </DisclosurePanel>
                     </Disclosure>
-
                 <Link className="hover:text-highlight duration-150 py-2" to="/">Tier Guide</Link>
                 <Link className="hover:text-highlight duration-150 py-2" to="/">Quick Setup</Link>
                 <Link className="hover:text-highlight duration-150 py-2" to="/">FAQ</Link>
-
                 <div className="flex justify-end bg-zinc-50/20 rounded-md my-2">
                     <UserButton />
                 </div>
                 </DisclosurePanel>
             </Disclosure>
-
             <nav className="font-sanchez min-h-d bg-background-dark hidden lg:flex flex-row gap-20 font-bold tracking-wider p-7 border-b border-highlight items-center">
                 <Link to="/" className="mr-auto flex flex-row items-center gap-2">
                         <img src={arcadiumIconLogo} alt="Arcadium Icon" className="h-18"/>
                         <img src={arcadiumTextLogo} alt="Arcadium Text" className="h-20" />
                 </Link>
-
                 {activeMatch ? (
                     !onMatchPage && (
                         <Link
@@ -108,7 +95,7 @@ export default function Layout() {
                         <Menu>
                             {canQueue.can_queue ? 
                             <>
-                             <MenuButton className="focus:outline-none flex items-center gap-2 hover:text-highlight transition-colors duration-150">
+                            <MenuButton className="focus:outline-none flex items-center gap-2 hover:text-highlight transition-colors duration-150">
                             Queue <ChevronDown className="size-6 scale-x-90" />
                             </MenuButton>
                             <MenuItems
@@ -124,19 +111,15 @@ export default function Layout() {
                                     <Link to="/prep/bms/7k/hc" className="block data-focus:text-highlight duration-150">7K Hard Clear</Link>
                                 </MenuItem>
                             </MenuItems></> : (<></>)      
-   
-                        }
 
+                        }
                         </Menu>
                     )
                     }
-
-
                 <Menu>
                     <MenuButton className="focus:outline-none flex items-center gap-2 hover:text-highlight transition-colors duration-150">
                         Rankings <ChevronDown className="size-6 scale-x-90" />   
                     </MenuButton>
-
                     <MenuItems
                     anchor={{ to: "bottom start", gap: 30}}
                     transition
@@ -150,11 +133,9 @@ export default function Layout() {
                         </MenuItem>
                     </MenuItems>
                 </Menu>
-
                 <Link className="hover:text-highlight duration-150" to="/">Tier Guide</Link>
                 <Link className="hover:text-highlight duration-150" to="/">Quick Setup</Link>
                 <Link className="hover:text-highlight duration-150" to="/">FAQ</Link>
-
                 <div>
                     <UserButton />
                 </div>
@@ -163,5 +144,6 @@ export default function Layout() {
                 <Outlet />
             </main>
         </div>
+
     )
 }
