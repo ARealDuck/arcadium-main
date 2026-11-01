@@ -20,35 +20,71 @@ export default function Register() {
     const [error, setError] = useState<string | null>(null)
 
     const handleRegister = async () => {
+
         if (
             !username ||
             !email ||
+            !displayName ||
             !emailConfirm ||
             !password ||
             !passwordConfirm
-        ) 
-        return;
+        )
+        {
+            setError("Please ensure all fields are filled in.")
+            return;
+        }
 
         if (
             username.trim() == "" ||
             email.trim() == "" ||
+            displayName.trim() == "" ||
             emailConfirm.trim() == "" ||
             password.trim() == "" ||
             passwordConfirm.trim() == ""
         )
-        return
+        {
+            setError("Please ensure all fields are filled in")
+            return;
+        }
 
         if (
             (email != emailConfirm) ||
             (password != passwordConfirm)
         )
-        return
+        {
+            setError("Please ensure your emails and passwords match.")
+            return;
+        }
+        
+        if (username.trim().length < 3 || username.trim().length > 20)
+        {
+            setError("Please ensure your username is of the appropriate length. Between 3 and 20 characters.")
+            return;
+        }
+
+        if (displayName.trim().length < 3 || displayName.trim().length > 20)
+        {
+            setError("Please ensure your display name is of the appropriate length. Between 3 and 20 characters.")
+            return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+        {
+            setError("Email must be in the correct format.")
+            return;
+        }
+
+        if (password.trim().length < 3 && password.trim().length > 20)
+        {
+            setError("Password must be between 3 and 20 characters")
+            return;
+        }
 
         try {
             await register(String(username), String(email), String(displayName), String(password));
             navigate(location.state?.from?.pathname ?? "/", { replace: true });
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Login failed");
+        setError(err instanceof Error ? err.message : "Something went wrong");
         }
     }
 
@@ -58,8 +94,16 @@ export default function Register() {
                 <Fieldset className="space-y-8">
                     <Legend className="text-4xl font-bold">Register</Legend>
 
+                    {
+                        error ?
+                        <div className="p-3 bg-red-700/25 border rounded-md border-zinc-300/50">
+                            <p className="text-subtext">{error}</p>
+                        </div> : <></>
+                    }
+
+
                     <Field>
-                        <Label className="block font-bold">Username</Label>
+                        <Label className="block font-bold">Username <span className="text-subtext font-light text-sm">3 - 20 Alphanumeric Characters</span></Label>
                         <Input 
                         onInput={(e) => setUsername(e.currentTarget.value)} 
                         value={username} 
@@ -69,7 +113,7 @@ export default function Register() {
                     </Field>
 
                     <Field>
-                        <Label className="block font-bold">Display name</Label>
+                        <Label className="block font-bold">Display name <span className="text-subtext font-light text-sm">3 - 20 Characters, spaces allowed</span></Label>
                         <Input 
                         onInput={(e) => setDisplayName(e.currentTarget.value)} 
                         value={displayName}
@@ -81,6 +125,7 @@ export default function Register() {
                     <Field>
                         <Label className="block font-bold">Email</Label>
                         <Input 
+                        type="email"
                         onInput={(e) => setEmail(e.currentTarget.value)}
                         value={email}
                         className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200" 
@@ -91,6 +136,7 @@ export default function Register() {
                     <Field>
                         <Label className="block font-bold">Confirm Email</Label>
                         <Input
+                        type="email"
                         onInput={(e) => setEmailConfirm(e.currentTarget.value)}
                         value={emailConfirm} 
                         className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200" 
@@ -98,7 +144,7 @@ export default function Register() {
                     </Field>
 
                     <Field>
-                        <Label className="block font-bold">Password</Label>
+                        <Label className="block font-bold">Password <span className="text-subtext text-sm font-light">3 - 20 Characters</span></Label>
                         <Input
                         onInput={(e) => setPassword(e.currentTarget.value)}
                         value={password} 

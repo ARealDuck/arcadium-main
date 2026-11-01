@@ -22,6 +22,9 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
     if taken:
         raise HTTPException(status.HTTP_409_CONFLICT, "Username is taken!")
 
+    if len(body.password) < 3 and len(body.password) > 20:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Your password should be between 3 and 20 characters!")
+
     user = User(
         username=body.username, 
         password_hash=hash_password(body.password),
@@ -34,7 +37,7 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
         db.flush()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Username is taken")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Username or email is taken")
 
     set_session_cookie(db, user, response)
     user.last_login_at = func.now()

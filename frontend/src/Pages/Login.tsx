@@ -16,10 +16,16 @@ export default function Login() {
     const handleLogin = async () => {
 
         if (identifier?.trim() == "" || password?.trim() == "")
-            return
+        {
+            setError("Please input an email or username")
+            return;
+        }
 
         if (!identifier || !password)
-            return
+        {
+            setError("Please input an email or username")
+            return;
+        }
 
         try {
             await login(String(identifier), String(password));
@@ -34,6 +40,14 @@ export default function Login() {
             <form className="lg:w-1/4 w-5/6">
                 <Fieldset className="space-y-8">
                     <Legend className="text-4xl font-bold">Login</Legend>
+
+                    {
+                        error ?
+                        <div className="p-3 bg-red-700/25 border rounded-md border-zinc-300/50">
+                            <p className="text-subtext">{error}</p>
+                        </div> : <></>
+                    }
+
 
                     <Field>
                         <Label className="block font-bold">Username or Email</Label>
