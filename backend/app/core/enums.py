@@ -10,6 +10,10 @@ class MatchStatus(StrEnum):
     EXPIRED = "expired"
     CANCELLED = "cancelled"
 
+class TokenPurpose(StrEnum):
+    VERIFY = "verify"
+    RESET = "reset"
+
 class CancelReason(StrEnum):
     NO_CHART = "No Chart"
 
