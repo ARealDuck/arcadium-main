@@ -66,7 +66,6 @@ export async function waitForJob<T>(jobId: number, intervalMs = 1500, timeoutMs 
 }
 
 export async function waitForMatch(matchId: number, intervalMs = 1500, timeoutMs = 60_000): Promise<Match> {
-  console.log("HI")
   const started = Date.now();
 
   while (Date.now() - started < timeoutMs) {

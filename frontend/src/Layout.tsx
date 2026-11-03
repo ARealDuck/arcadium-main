@@ -32,6 +32,14 @@ export default function Layout() {
         })
     }, [user])
 
+    const sendVerifyEmail = async () => {
+        try {
+            await api("/auth/me/resend_verify", { method: "POST" })
+        } catch (err) {
+            console.log(err)
+        }
+    }
+
     return (
         <div className="min-h-dvh flex flex-col">
             <Disclosure key={location.pathname} as="nav" className="font-sanchez bg-background-dark lg:hidden font-bold tracking-wider p-7 border-b border-highlight items-center">
@@ -149,6 +157,12 @@ export default function Layout() {
                     <UserButton />
                 </div>
             </nav>
+            {!user?.email_verified ? 
+            <div className="p-3 bg-red-800/25 text-center font-sanchez">
+                Please verify your email! If you didn't receive a verification link, <a className="text-highlight cursor-pointer" onClick={sendVerifyEmail}>click here</a> to send another.
+            </div> : <></>      
+            }
+
             <main className="flex-1 flex flex-col">
                 <Outlet />
             </main>

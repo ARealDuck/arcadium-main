@@ -136,8 +136,6 @@ export default function MatchPage() {
         .catch(err => console.log(err))
     }
 
-    console.log(match)
-
     return (
         <div className="w-full flex-1 flex flex-col">
             {

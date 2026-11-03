@@ -61,5 +61,6 @@ class UserOut(BaseModel):
     avatar_url: str | None
     has_tachi_key: bool = False
     onboarded_at: datetime | None
+    email_verified: bool
 
     model_config = {"from_attributes": True}

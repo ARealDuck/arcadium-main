@@ -50,9 +50,6 @@ export default function ProfileLampsAndRecents({ className, matches, lamps }: Pr
                         const count = lamps[lamp] ?? 0;
                         if (count === 0) return null;
 
-                        console.log(count)
-                        console.log(total)
-
                         return (
                         
                             <div 

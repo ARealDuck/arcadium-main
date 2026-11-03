@@ -35,14 +35,11 @@ export default function OnboardingPage() {
         if (!user)
             return;
 
-        console.log(user)
-
         if (user.has_tachi_key)
             setPhase(1);
     }, [])
 
     const submitTachiKey = async () => {
-        console.log(loadTachiKey)
         if (tachiKey.trim() == "" || loadTachiKey)
             return;
 

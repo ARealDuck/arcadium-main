@@ -87,7 +87,6 @@ export default function MatchPrep() {
                     
                     const { status, data } = await apiWithStatus<UserRating>(url, { method: "POST" });
 
-                    console.log(status, data)
                     if (status === 202) {
                         setSettingUp(true);                                      
                         rating = await waitForRating(url, () => cancelled);      

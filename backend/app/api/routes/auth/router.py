@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.enums import TokenPurpose
 from app.models import User, UserSession
-from app.api.dependencies import COOKIE_NAME, get_current_user, set_session_cookie
+from app.api.dependencies import COOKIE_NAME, DbSession, get_current_user, set_session_cookie
 from app.job.enqueue import enqueue_send_verify_email, enqueue_tachi_check, enqueue_tachi_seed
 from app.models.tokens import Token
 from app.schemas.job import JobOut
@@ -74,7 +74,7 @@ def login(body: LoginIn, response: Response, db: Session = Depends(get_db)):
     if user.tachi_api_key != "" or user.tachi_api_key is not None:
         has_tachi_api_key = True
 
-    user_out = UserOut(id=user.id, display_name=user.display_name, username=user.username, avatar_url=user.avatar_url, has_tachi_key=has_tachi_api_key, onboarded_at=user.onboarded_at)
+    user_out = UserOut(id=user.id, display_name=user.display_name, username=user.username, avatar_url=user.avatar_url, has_tachi_key=has_tachi_api_key, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
         
 
     return user_out
@@ -94,7 +94,7 @@ def logout(
 def me(user: User = Depends(get_current_user)):
     has_tachi_key = bool(user.tachi_api_key)
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=has_tachi_key, onboarded_at=user.onboarded_at)
+    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=has_tachi_key, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
 
 # Allows a user to link their tachi account. Once this is done, a job is queued to seed them behind the scenes.
 
@@ -134,4 +134,38 @@ def finish_onboarding(user: User = Depends(get_current_user), db: Session = Depe
 
     db.commit()
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=True, onboarded_at=user.onboarded_at)
+    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=True, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+
+@router.post("/me/resend_verify", status_code=200)
+def resend_verify(db: DbSession, user: User = Depends(get_current_user)):
+    job = enqueue_send_verify_email(db, user.id)
+
+    db.commit()
+
+    return job
+
+@router.post('/me/verify', status_code=200)
+def verify_email(db: DbSession, token: str, user: User = Depends(get_current_user)):
+    if token is None or token.strip() == "":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No token was specified. Aborting.")
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    row = db.scalar(
+        select(Token)
+        .where(
+            Token.token_hash == token_hash,
+            Token.purpose == TokenPurpose.VERIFY,
+            Token.used_at.is_(None),
+            Token.expires_at > func.now()
+        )
+        .with_for_update()
+    )    
+
+    if row is None or row.user_id != user.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is invalid or has been used.")
+
+    row.used_at = func.now()
+    row.user.email_verified = True
+    db.commit()
+    return {"message": "Email verified"}

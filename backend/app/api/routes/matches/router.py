@@ -36,9 +36,6 @@ def start_match(db: DbSession, user: CurrentUser, game: str, playtype: str, ladd
     if not user.tachi_api_key or user.tachi_api_key == "":
         raise HTTPException(status.HTTP_409_CONFLICT, "No Tachi key found. Please set up your Tachi API key!")
 
-    print(body.tables)
-    print(valid_table_icons())
-
     invalid = set(body.tables) - valid_table_icons()
 
     if invalid:
