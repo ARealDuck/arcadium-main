@@ -1,13 +1,16 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import secrets, hashlib
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
+from app.core.enums import TokenPurpose
 from app.models import User, UserSession
 from app.api.dependencies import COOKIE_NAME, get_current_user, set_session_cookie
-from app.job.enqueue import enqueue_tachi_check, enqueue_tachi_seed
+from app.job.enqueue import enqueue_send_verify_email, enqueue_tachi_check, enqueue_tachi_seed
+from app.models.tokens import Token
 from app.schemas.job import JobOut
 from app.core.security import hash_password, hash_token, verify_password
 
@@ -41,8 +44,10 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
 
     set_session_cookie(db, user, response)
     user.last_login_at = func.now()
+
+    enqueue_send_verify_email(db, user.id)
+
     db.commit()
-    db.refresh(user)
     return user
 
 @router.post("/login", response_model=UserOut)
@@ -87,10 +92,7 @@ def logout(
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
-    has_tachi_key = False;
-    
-    if (user.tachi_api_key != "" or user.tachi_api_key is not None):
-        has_tachi_key = True
+    has_tachi_key = bool(user.tachi_api_key)
 
     return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=has_tachi_key, onboarded_at=user.onboarded_at)
 
