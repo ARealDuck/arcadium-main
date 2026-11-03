@@ -166,16 +166,14 @@ def send_verify_email(db, job):
 
     db.commit()
 
-    print(settings.resend_api_key)
-
     resend.api_key = settings.resend_api_key
 
-    # r = resend.Emails.send({
-    #     "from": "onboarding@resend.dev",
-    #     "to": "email",
-    #     "subject": "This is a test email!",
-    #     "html": "<p>Testing on this email!</p>"
-    # })
+    r = resend.Emails.send({
+        "from": "noreply@arcadium.ac",
+        "to": user.email,
+        "subject": "Verify Your Email!",
+        "html": f"<p>Please click <a href=\"{settings.frontend_url}/verify?token={verify_token}\">this link</a> to verify your email!</p>"
+    })
 
     return {"sent_to": user.id}
 
