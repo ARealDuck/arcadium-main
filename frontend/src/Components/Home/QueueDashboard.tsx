@@ -92,31 +92,10 @@ export default function QueueDashboard() {
         )
     }
 
-    const displayTachiKeyInsert = () => {
-
-        return (
-            <Fieldset className="space-y-8 lg:w-1/4 w-full flex flex-row items-center gap-3">
-                <Field className="flex-1">
-                    <Label className="block font-bold">Tachi API Key</Label>
-                    <Input 
-                    onInput={(e) => setTachiKey(e.currentTarget.value)}
-                    value={tachiKey}
-                    className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200" 
-                    name="tachi_key"/>
-                </Field>
-
-                <Button onClick={(e) => {e.preventDefault; handleUpdateTachiKey()}} className="h-10 font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-md font-semibold"><MessageCircleDashedCheck className="size-4"/></Button>
-            </Fieldset>
-        )
-
-    }
-
     return loading ? (
         <></> ) : (
         <div className="flex flex-col lg:flex-row items-center gap-5 justify-center w-full bg-foreground p-5">
-            {
-                canQueue.can_queue ? displayQueueCards() : (displayTachiKeyInsert())
-            }
+            {displayQueueCards()}
         </div>
     )
 
