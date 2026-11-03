@@ -1,9 +1,14 @@
-from datetime import datetime, timezone
-from sqlalchemy import update
+from datetime import datetime, timedelta, timezone
+import hashlib
+import secrets
+import resend
+from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import User, Match
-from app.core.enums import ClearTypes, MatchStatus
+from app.core.enums import ClearTypes, MatchStatus, TokenPurpose
+from app.models.tokens import Token
 from app.services.tachi import TachiError
 from app.services.tachi import tachi_get
 from app.services.match import cancel_stale_matches
@@ -135,6 +140,43 @@ def match_cleanup(db, job):
 
     return {"rowsAffected": rowCount}
 
+def send_verify_email(db, job):
+    user: User = db.get(User, job.user_id)
+
+    if user is None:
+        return {"skipped": "User not found!"}
+
+    if user.email_verified:
+        return {"skipped": "Email already verified!"}
+
+    db.execute(
+        update(Token)
+        .where(Token.user_id == user.id, Token.purpose == TokenPurpose.VERIFY, Token.used_at.is_(None))
+        .values(used_at=func.now())
+    )
+
+    verify_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(verify_token.encode()).hexdigest()
+    new_token = Token(
+        purpose=TokenPurpose.VERIFY,
+        token_hash=token_hash,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+    )
+    user.tokens.append(new_token)
+
+    db.commit()
+
+    resend.api_key = settings.resend_api_key
+
+    r = resend.Emails.send({
+        "from": "noreply@arcadium.ac",
+        "to": user.email,
+        "subject": "Verify Your Email!",
+        "html": f"<p>Please click <a href=\"{settings.frontend_url}/verify?token={verify_token}\">this link</a> to verify your email!</p>"
+    })
+
+    return {"sent_to": user.id}
+
 HANDLERS = {
     "tachi_recent_score": tachi_recent_score,
     "tachi_rating": tachi_rating,
@@ -143,5 +185,6 @@ HANDLERS = {
     "match_pre_submission": match_pre_submission,
     "match_forfeit": match_forfeit,
     "match_cleanup": match_cleanup,
-    "tachi_key_valid": tachi_key_valid
+    "tachi_key_valid": tachi_key_valid,
+    "send_verify_email": send_verify_email
 }

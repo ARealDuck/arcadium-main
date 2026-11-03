@@ -54,6 +54,10 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
 
+    tokens: Mapped[list["Token"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+
 # UserIdentity Model -- Currently not in use, but meant for OAuth2 once that is implemented
 
 class UserIdentity(Base):

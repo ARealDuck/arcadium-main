@@ -1,4 +1,12 @@
-export type User = { id: number; username: string; display_name: string; avatar_url: string | null, has_tachi_key: boolean, onboarded_at: Date | null};
+export type User = { 
+    id: number; 
+    username: string; 
+    display_name: string; 
+    avatar_url: string | null,
+    has_tachi_key: boolean, 
+    onboarded_at: Date | null;
+    email_verified: boolean;
+};
 
 export interface UserRating {
     ladder: string;

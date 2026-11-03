@@ -45,3 +45,6 @@ def enqueue_match_forfeit(db, user_id: int, match_id: int) -> Job:
 
 def enqueue_match_cleanup(db, user_id: int) -> Job:
     return enqueue_job(db, user_id, "match_cleanup")
+
+def enqueue_send_verify_email(db, user_id: int) -> Job:
+    return enqueue_job(db, user_id, "send_verify_email")

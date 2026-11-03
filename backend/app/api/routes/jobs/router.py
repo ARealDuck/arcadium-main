@@ -33,7 +33,7 @@ def request_tachi_rating(user: CurrentUser, db: DbSession):
 @router.get("/{job_id}", response_model=JobOut)
 def get_job(job_id: int, user: CurrentUser, db: DbSession):
     job = db.get(Job, job_id)
-    if job is None or job.user_id != user.id:
+    if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
 
     return job
@@ -41,7 +41,7 @@ def get_job(job_id: int, user: CurrentUser, db: DbSession):
 @router.post("/{job_id}/retry", response_model=JobOut)
 def retry_job(job_id: int, user: CurrentUser, db: DbSession):
     job = db.get(Job, job_id)
-    if job is None or job.user_id != user.id:
+    if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     job.status = "pending"

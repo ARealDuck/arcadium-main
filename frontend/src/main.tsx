@@ -20,6 +20,7 @@ import { TierProvider } from './hooks/useTiers.tsx'
 import ProfilePage from './Pages/ProfilePage.tsx'
 import OnboardingPage from './Pages/OnboardingPage.tsx'
 import { ActiveMatchProvider } from './hooks/useActiveMatch.tsx'
+import VerifyPage from './Pages/VerifyPage.tsx'
 
 // Has to be done to use useActiveMatch within layout. ActiveMatchProvider has to be within Router for useLocation, so we can refresha activematch upon route switch.
 function ActiveMatchRoute() {
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
 
           }
         ]
+      },
+      {
+        path: "/verify",
+        element: <VerifyPage />
       }
 
     ]

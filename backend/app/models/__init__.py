@@ -3,6 +3,7 @@ from app.models.charts import Chart, ChartTableLevel, ChartRating
 from app.models.users import User, UserSession, UserIdentity, PlayerRating, UserAvoidedChart
 from app.models.jobs import Job
 from app.models.matches import Match, MatchScore
+from app.models.tokens import Token
 
 __all__ = [
     "Base", 
@@ -16,5 +17,6 @@ __all__ = [
     "Job",
     "Match",
     "UserAvoidedChart",
-    "MatchScore"
+    "MatchScore",
+    "Token"
     ]
