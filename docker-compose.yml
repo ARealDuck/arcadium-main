@@ -23,10 +23,12 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY}
       FRONTEND_URL: ${FRONTEND_URL}
       WATCHFILES_FORCE_POLLING: "true"
+      MEDIA_DIR: /media
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - media:/media
     depends_on:
       db:
         condition: service_healthy
@@ -59,3 +61,4 @@ services:
 
 volumes:
   pgdata:
+  media:

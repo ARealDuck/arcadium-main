@@ -121,6 +121,7 @@ export type TableCounts = Record<string, number>;
 interface ProfileGeneric {
     display_name: string;
     join_date: string;
+    avatar_url: string | null;
 }
 
 export interface ProfileRating {

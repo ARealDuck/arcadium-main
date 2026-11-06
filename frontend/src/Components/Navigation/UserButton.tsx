@@ -17,7 +17,7 @@ export default function UserButton() {
 
                 <ProfileImage 
                 username="test"
-                src="https://placehold.co/600x400"
+                src={user?.avatar_url}
                 />
             </MenuButton>
 
@@ -28,6 +28,9 @@ export default function UserButton() {
             >
                 <MenuItem>
                     <Link className="hover:text-highlight duration-150" to={`/profile/${user?.id}`}>Profile</Link>
+                </MenuItem>
+                <MenuItem>
+                    <Link className="hover:text-highlight duration-150" to={`/settings`}>Settings</Link>
                 </MenuItem>
                 <MenuItem>
                     <Link onClick={logout} className="hover:text-highlight duration-150" to="/">Log Out</Link>

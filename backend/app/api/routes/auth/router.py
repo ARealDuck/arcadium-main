@@ -1,10 +1,16 @@
 from datetime import datetime, timedelta, timezone
+import io
+from pathlib import Path
 import secrets, hashlib
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from uuid import uuid4
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, UploadFile, status
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from PIL import Image, UnidentifiedImageError, ImageOps
 
+from app.config import settings
+from app.core.constants import ALLOWED_FORMATS, MAX_AVATAR_BYTES, MAX_IMAGE_PIXELS
 from app.core.db import get_db
 from app.core.enums import TokenPurpose
 from app.models import User, UserSession
@@ -17,6 +23,7 @@ from app.core.security import hash_password, hash_token, verify_password
 from app.schemas.auth import UserOut, RegisterIn, LoginIn
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)):
@@ -169,3 +176,37 @@ def verify_email(db: DbSession, token: str, user: User = Depends(get_current_use
     row.user.email_verified = True
     db.commit()
     return {"message": "Email verified"}
+
+@router.post('/me/avatar', status_code=200)
+def update_avatar(file: UploadFile, db: DbSession, user: User = Depends(get_current_user)):
+
+    data = file.file.read(MAX_AVATAR_BYTES + 1)
+
+    if len(data) > MAX_AVATAR_BYTES:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Image must be 5 MB or smaller")
+    
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.load()
+
+        if img.format not in ALLOWED_FORMATS:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "That file isn't a supported image.")
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        raise HTTPException(400, "That file isn't a supported image.")
+
+    img = ImageOps.exif_transpose(img).convert("RGBA")
+    img = ImageOps.fit(img, (256, 256))
+    out = io.BytesIO()
+    img.save(out, "WEBP", quality=85)
+
+    path = Path(settings.media_dir) / "avatars" / f"{uuid4()}.webp"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(out.getvalue())
+    old_url = user.avatar_url
+    user.avatar_url = f"/api/media/avatars/{path.name}"
+    db.commit()
+
+    if old_url and old_url.startswith("/api/media/avatars/"):
+        (Path(settings.media_dir) / "avatars" / Path(old_url).name).unlink(missing_ok=True)
+
+    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
