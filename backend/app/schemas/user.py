@@ -6,6 +6,7 @@ from app.schemas.match import MatchOut
 class ProfileGenericOut(BaseModel):
     display_name: str
     join_date: datetime
+    avatar_url: str | None
 
 class ProfilePlayerRatingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

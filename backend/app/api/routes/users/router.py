@@ -134,7 +134,7 @@ def get_profile_info(db: DbSession, id: int, game: str, playtype: str, ladder: s
     if game == "bms":
         num_aa = get_num_double_a(db, user.id, playtype, ladder)
 
-    profile_generic = ProfileGenericOut(display_name=user.display_name, join_date=user.created_at)
+    profile_generic = ProfileGenericOut(display_name=user.display_name, join_date=user.created_at, avatar_url=user.avatar_url)
 
     if player_rating is None:
         return UserProfileInfoOut(

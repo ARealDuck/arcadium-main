@@ -21,6 +21,7 @@ import ProfilePage from './Pages/ProfilePage.tsx'
 import OnboardingPage from './Pages/OnboardingPage.tsx'
 import { ActiveMatchProvider } from './hooks/useActiveMatch.tsx'
 import VerifyPage from './Pages/VerifyPage.tsx'
+import SettingsPage from './Pages/SettingsPage.tsx'
 
 // Has to be done to use useActiveMatch within layout. ActiveMatchProvider has to be within Router for useLocation, so we can refresha activematch upon route switch.
 function ActiveMatchRoute() {
@@ -58,7 +59,8 @@ const router = createBrowserRouter([
                   { index: true, element: <HomePage />},
                   { path: "prep/:game/:playtype/:ladder", element: <MatchPrep />},
                   { path: "match/:id", element: <MatchPage />},
-                  { path: "/profile/:id", element: <ProfilePage /> }
+                  { path: "/profile/:id", element: <ProfilePage /> },
+                  { path: "/settings", element: <SettingsPage /> }
                 ]
               }
 

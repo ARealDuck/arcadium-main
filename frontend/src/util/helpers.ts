@@ -3,29 +3,29 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const res = await fetch(`/api${path}`, {
-        ...options,
-        headers: { "Content-Type": "application/json", ...options.headers },
-    });
+  const isForm = options.body instanceof FormData;
 
-    if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new ApiError(res.status, body?.detail ?? `Request failed: ${res.status}`);
-    }
-    return res.status === 204 ? (undefined as T) : res.json();
+  const res = await fetch(`/api${path}`, {
+      ...options,
+      headers: isForm ? options.headers : { "Content-Type": "application/json", ...options.headers },
+  });
+  if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new ApiError(res.status, body?.detail ?? `Request failed: ${res.status}`);
+  }
+  return res.status === 204 ? (undefined as T) : res.json();
 }
 
 export async function apiWithStatus<T>(path: string, options: RequestInit = {}) {
-    const res = await fetch(`/api${path}`, {
-        ...options,
-        headers: { "Content-Type": "application/json", ...options.headers },
-    });
-
-    if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new ApiError(res.status, body?.detail ?? `Request failed: ${res.status}`);
-    }
-    return { status: res.status, data: (await res.json()) as T }
+  const res = await fetch(`/api${path}`, {
+      ...options,
+      headers: { "Content-Type": "application/json", ...options.headers },
+  });
+  if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new ApiError(res.status, body?.detail ?? `Request failed: ${res.status}`);
+  }
+  return { status: res.status, data: (await res.json()) as T }
 }
 
 export class ApiError extends Error {
