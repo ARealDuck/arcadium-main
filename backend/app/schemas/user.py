@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.match import MatchOut
@@ -48,3 +49,16 @@ class UserProfileInfoOut(BaseModel):
     rating_total: int | None = None
     last_played: datetime | None = None
     bms: BMSProfileOut | None = None
+
+class SetupIn(BaseModel):
+    source: Literal["tachi", "preset"]
+    preset: Literal["beginner", "intermediate", "advanced", "experienced"] | None
+
+class SeedOptionOut(BaseModel):
+    key: str
+    level: int
+    elo: float
+
+class SeedOptionsOut(BaseModel):
+    presets: list[SeedOptionOut]
+    tachi: SeedOptionOut | None = None

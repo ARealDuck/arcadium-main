@@ -165,3 +165,13 @@ export async function waitForRating(
   }
   throw new Error("Rating setup is taking too long. Try refreshing")
 }
+
+export function returnSieglinde(unified: number) {
+  let icon = unified <= 12 ? "☆" : "★";
+  let number = unified <= 12 ? unified : unified - 12;
+
+  return {
+    "icon": icon,
+    "number": number
+  }
+}

@@ -13,6 +13,8 @@ import ProgressBar from "../Components/General/ProgressBar";
 import { toFixedTruncated } from "../util/helpers";
 import ScoreSummary from "../Components/Match/ScoreSummary";
 import { useActiveMatch } from "../hooks/useActiveMatch";
+import LoadingSpinner from "../Components/General/LoadingSpinner";
+import ArcButton from "../Components/General/ArcButton";
 
 export default function MatchPage() {
 
@@ -288,12 +290,12 @@ export default function MatchPage() {
                                     
                                     {
                                         match.status == "active" && match.user.id == user.id ? (
-                                        <Button onClick={handleSubmit} className="relative font-sanchez bg-highlight rounded-lg p-3 font-bold hover:brightness-130 cursor-pointer duration-150">
+                                        <ArcButton onClick={handleSubmit} className="relative font-sanchez rounded-lg p-3 font-bold hover:brightness-130 cursor-pointer duration-150">
                                             <span className={status === "verifying" ? "invisible" : ""}>Check Scores</span>
                                             {status === "verifying" && (
-                                                <LoaderCircle className="absolute inset-0 m-auto size-4 animate-spin"/>
+                                                <LoadingSpinner className="absolute inset-0 text-white"/>
                                             )}
-                                        </Button> ) : <></>
+                                        </ArcButton> ) : <></>
                                     }
 
 
@@ -318,7 +320,7 @@ export default function MatchPage() {
                                 Press <span className="bg-background p-1 border m-1">F2</span> on your table in Beatoraja or press <span className="bg-background p-1 border m-1">F8</span> in openLR2 to reload your match table!
                             </p>
                             <p className="font-mono bg-background p-2 border border-zinc-500 text-subtext shrink-0 text-xs lg:text-md">
-                                https://arcadium.com/api/match/{match.user.id}/table
+                                https://arcadium.ac/api/match/{match.user.id}/table
                             </p>
                             <div className="flex flex-row gap-4">
                                 <Menu>
@@ -340,7 +342,7 @@ export default function MatchPage() {
                                 </Menu>
                                 {
                                     forfeitLoad ?
-                                    <Button className="text-red-400 cursor-pointer"><span className="shrink-0 text-subtext"><LoaderCircle className=" m-auto size-4 animate-spin"/></span></Button> :
+                                    <Button className="text-red-400 cursor-pointer"><span className="shrink-0 text-subtext"><LoadingSpinner /></span></Button> :
                                     <Button onClick={handleForfeit} className="text-red-400 hover:brightness-110 duration-150 cursor-pointer underline tracking-wide">Forfeit</Button>
                                 }
                                 

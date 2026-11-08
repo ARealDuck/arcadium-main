@@ -2,15 +2,18 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { QueueIcon } from "../Components/Home/QueueCard";
 import type { Match, TableCounts, UserRating } from "../util/NetworkModels";
-import { api, ApiError, apiWithStatus, toFixedTruncated, waitForRating } from "../util/helpers";
+import { api, ApiError, apiWithStatus, toFixedTruncated } from "../util/helpers";
 import { useLocation, useNavigate, useParams } from "react-router";
 import type { TableInfo } from "../util/MiscInterfaces";
-import { Button, Input, Radio, RadioGroup } from "@headlessui/react";
+import { Input, Radio, RadioGroup } from "@headlessui/react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 import { Podium } from "lucide-react";
 import { playtype as playtypeCorrect, games, ladder as ladderCorrect } from "../util/dictionaryCorrections";
 import { useDebounce } from "../hooks/useDebounce";
 import TableSection from "../Components/Match/TableSection";
+import ArcButton from "../Components/General/ArcButton";
+import LoadingSpinner from "../Components/General/LoadingSpinner";
+import SeedPicker from "../Components/MatchPrep/SeedPicker";
 
 export default function MatchPrep() {
     const { user, loading } = useAuth();
@@ -58,11 +61,12 @@ export default function MatchPrep() {
         { tableIcon: "h◎", tableName: "Scratch 3rd", category: "skillset" },
         { tableIcon: "so", tableName: "Solar", category: "skillset" },
         { tableIcon: "sn", tableName: "Supernova", category: "skillset" }
-    ]
+]
 
     const generalTables = TABLES.filter(t => t.category === "general");
     const skillsetTables = TABLES.filter(t => t.category === "skillset");
     const skillsetSelected = skillsetTables.filter(t => selected.includes(t.tableIcon)).length;
+    const [ratingStatus, setRatingStatus] = useState<"loading" | "none" | "seeding" | "done">("loading");
 
     const allSkillset = skillsetSelected === skillsetTables.length;
     const selectedCharts = selected.reduce((sum, icon) => sum + (tableCounts?.[icon] ?? 0), 0);
@@ -81,26 +85,15 @@ export default function MatchPrep() {
             try {
                 let rating: UserRating | null;
                 try {
-                    rating = await api<UserRating>(url);                       
+                    rating = await api<UserRating>(url); 
+                    setRatingStatus("done")           
+                    setRating(rating)           
                 } catch (err) {
-                    if (!(err instanceof ApiError && err.status === 404)) throw err;
-                    
-                    const { status, data } = await apiWithStatus<UserRating>(url, { method: "POST" });
-
-                    if (status === 202) {
-                        setSettingUp(true);                                      
-                        rating = await waitForRating(url, () => cancelled);      
-                    } else {
-                        rating = data;
-                    }
+                    if (!(err instanceof ApiError && err.status === 404)) throw err
+                    if ((err instanceof ApiError && err.status === 404)) setRatingStatus("none");
                 }
-                if (!cancelled && rating) {
-                    setRating(rating);
-                    setSelected(rating.selected_tables)
-                    setTargetRating(rating.display_rating)
-                    setSettingUp(false);
-                }
-            } catch (err) {
+            }
+            catch (err) {
                 if (!cancelled) setError(err instanceof Error ? err.message : "Something went wrong");
             }
         }
@@ -133,6 +126,39 @@ export default function MatchPrep() {
 
         if (Number.isNaN(debouncedRating)) return;
     }, [countsKey, rating])
+
+    const seedPlayer = (body?: { source: string, preset?: string }) => {
+        setRatingStatus("seeding")
+
+        apiWithStatus<UserRating>(`/users/me/ratings/${game}/${playtype}/${ladder}`, { method: "POST", body: JSON.stringify(body) })
+        .then(({ status, data }) => {
+            if (status == 202) {
+                startPolling();
+                return;
+            }
+            setRating(data)
+            setRatingStatus("done")
+        })
+        .catch(() => setRatingStatus("none"))
+    }
+
+    const startPolling = () => {
+        const interval = setInterval(() => {
+            apiWithStatus<UserRating>(`/users/me/ratings/${game}/${playtype}/${ladder}`, {
+                method: "POST"
+            })
+            .then(({ status, data  }) => {
+                if (status === 202) return;
+                clearInterval(interval);
+                setRating(data);
+                setRatingStatus("done")
+            })
+            .catch(() => {
+                clearInterval(interval);
+                setRatingStatus("none");
+            })
+        }, 2000)
+    }
 
     const handleQueue = async () => {
         if (matchType == "competitive") 
@@ -176,11 +202,12 @@ export default function MatchPrep() {
         setTargetRating(rating.display_rating)
     }, [matchType])
     
-    if (loading || !rating || !playtype || !game || !ladder) {
-        return <div className="flex-1 flex items-center justify-center text-muted">Loading…</div>
+    if (ratingStatus == "loading" || ratingStatus == "seeding" || !playtype || !game || !ladder) {
+        return <LoadingSpinner className="size-15" />
     }
 
-
+    if (ratingStatus == "none")
+        return <SeedPicker seedPlayer={seedPlayer} />
 
     return (
         <div key={location.pathname} className="flex-1 flex w-5/6 mx-auto lg:w-auto items-center justify-center mt-5">
@@ -275,7 +302,7 @@ export default function MatchPrep() {
                                     <div>
                                         <p className="font-sanchez">{selected.length} Tables &middot; up to {selectedCharts} Charts In Range</p>
                                     </div>
-                                    <Button onClick={handleQueue} disabled={selectedCharts < 25} className="font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-bold">Queue <Podium className="size-5 font-bold"/></Button>
+                                    <ArcButton disabled={selectedCharts < 25} onClick={handleQueue}>Queue <Podium className="size-5 font-bold"/></ArcButton>
                                 </div>
                             </ForegroundCard>
                         </div>
