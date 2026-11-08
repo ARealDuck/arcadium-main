@@ -37,32 +37,11 @@ export default function QueueDashboard() {
         .catch(err => setError(err.message))
     }, [user, status === "done"])
 
-    const handleUpdateTachiKey = async () => {
-        if (!tachiKey || tachiKey.trim() == "")
-            return
-
-        setStatus("saving");
-        setMessage(null)
-
-        try {
-            const job = await api<Job>(
-                `/auth/me/tachi_key?tachi_key=${encodeURIComponent(tachiKey)}`,
-                { method: "PUT" }
-            );
-
-            setStatus("verifying");
-            await waitForJob(job.id)
-            setStatus("done");
-        } catch (err) {
-            setStatus("error");
-            setMessage(err instanceof Error ? err.message : "Something went wrong")
-        }
-    }
-
     const displayQueueCards = () => {
         return ratings.length > 0 ? (
             <>
-                {
+                <p className="font-semibold font-sanchez">WIP Page, click on Queue to join a ladder!</p>
+                {/* {
                     ratings.map(rating => {
 
                     const playerRating : UserRating = { 
@@ -85,7 +64,7 @@ export default function QueueDashboard() {
                         )
 
                     })
-                }
+                } */}
             </>
         ) : (
             <p className="font-semibold font-sanchez">You have played in no ladders. Click Queue to enter one now!</p>

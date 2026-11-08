@@ -4,6 +4,7 @@ from app.models.users import User, UserSession, UserIdentity, PlayerRating, User
 from app.models.jobs import Job
 from app.models.matches import Match, MatchScore
 from app.models.tokens import Token
+from app.models.invites import Invite
 
 __all__ = [
     "Base", 
@@ -18,5 +19,6 @@ __all__ = [
     "Match",
     "UserAvoidedChart",
     "MatchScore",
-    "Token"
+    "Token",
+    "Invite"
     ]

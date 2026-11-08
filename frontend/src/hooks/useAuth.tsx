@@ -9,7 +9,7 @@ type AuthState = {
     refresh: () => Promise<void>;
     logout: () => Promise<void>;
     login: (identifier: string, password: string) => Promise<void>;
-    register: (username: string, email: string, display_name: string, password: string) => Promise<void>;
+    register: (username: string, email: string, display_name: string, password: string, inviteCode?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -45,10 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(me);
     }
 
-    async function register(username: string, email: string, display_name: string, password: string) {
+    async function register(username: string, email: string, display_name: string, password: string, inviteCode?: string) {
         const me = await api<User>("/auth/register", {
             method: "POST",
-            body: JSON.stringify({ username, email, display_name, password})
+            body: JSON.stringify({ username, email, display_name, password, invite_code: inviteCode})
         });
         setUser(me);
     }

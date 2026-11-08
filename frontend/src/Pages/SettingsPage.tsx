@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../util/helpers";
-import type { User } from "../util/NetworkModels";
+import type { Invite, Invites, User } from "../util/NetworkModels";
 import { Button } from "@headlessui/react";
 import ForegroundCard from "../Components/General/ForegroundCard";
+import InviteList from "../Components/Settings/InviteList";
 
 export default function SettingsPage() {
 
@@ -12,6 +13,7 @@ export default function SettingsPage() {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [dragging, setDragging] = useState(false);
+    const [invites, setInvites] = useState<Invites>();
 
     const [uploading, setUploading] = useState<boolean>(false);
     const [error, setError] = useState<string>();
@@ -20,6 +22,16 @@ export default function SettingsPage() {
         if (!f || !f.type.startsWith("image/")) return;
         setFile(f);
         setPreview(URL.createObjectURL(f));
+    }
+
+    function createInvite() {
+        api<Invite>("/invite/create", { method: "POST" })
+        .then(invite => {
+            setInvites(prev => prev && {
+                invites: [invite, ...prev.invites],
+                available: prev.available - 1
+            })
+        })
     }
 
     async function uploadAvatar(f: File) {
@@ -40,6 +52,13 @@ export default function SettingsPage() {
 
     }
 
+    useEffect(() => {
+        api<Invites>("/invite/list")
+        .then(inviteList => {
+            setInvites(inviteList)
+        })
+    }, [])
+
     return (
         <div className="flex flex-col w-7/8 lg:w-1/2 mx-auto">
             <p className="font-archivo text-subtext tracking-[0.2em] text-xl mt-2">Settings</p>
@@ -59,7 +78,35 @@ export default function SettingsPage() {
                     }
                     <input type="file" accept="image/*" className="hidden" onChange={e => pick(e.target.files?.[0] )} />
                 </label>
-                <Button onClick={file ? () => uploadAvatar(file) : undefined} className="self-end font-sanchez flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-semibold">Upload</Button>
+                <Button
+                    disabled={file == null}
+                    className="font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 enabled:hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-semibold data-disabled:opacity-50 data-disabled:cursor-not-allowed self-end"
+                    onClick={file ? () => uploadAvatar(file) : undefined}
+                >
+                    Upload
+                </Button>
+            </ForegroundCard>
+
+            <ForegroundCard>
+                <div className="flex flex-row flex-wrap items-center justify-between gap-3 mb-5">
+                    <p className="font-sanchez text-lg">Invites</p>
+
+                    <div className="flex items-center gap-3 bg-zinc-300/25 p-3 rounded-xl">
+                        <span className="text-lg font-sanchez">{invites?.available} <span className="text-subtext">available</span></span>
+                    <Button
+                        onClick={createInvite}
+                        disabled={!invites?.available}
+                        className="font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 enabled:hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-semibold data-disabled:opacity-50 data-disabled:cursor-not-allowed"
+                    >
+                        Create Invite
+                    </Button>
+                    </div>
+                </div>
+
+
+                <InviteList 
+                invites={invites?.invites ?? []}
+                />
             </ForegroundCard>
 
         </div>

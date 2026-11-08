@@ -167,3 +167,20 @@ export interface UserProfileInfo {
     last_played?: string | null;
     bms?: BMSProfile
 }
+
+export interface InviteStatus {
+    invites_required: boolean;
+}
+
+export interface Invite {
+    code: string;
+    created_at: string;
+    used_at: string | null;
+    used_by_name: string | null;
+    used_by_id: string | null;
+}
+
+export interface Invites {
+    invites: Invite[];
+    available: number;
+}
