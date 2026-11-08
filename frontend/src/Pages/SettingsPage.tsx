@@ -62,6 +62,15 @@ export default function SettingsPage() {
                 <Button onClick={file ? () => uploadAvatar(file) : undefined} className="self-end font-sanchez flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-semibold">Upload</Button>
             </ForegroundCard>
 
+            <ForegroundCard className="flex flex-row flex-wrap items-center justify-between gap-3">
+                <p className="font-sanchez text-lg">Invites</p>
+
+                <div className="flex items-center gap-3">
+                    <span className="text-lg font-sanchez">3 <span className="text-subtext">available</span></span>
+                    <Button className="font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-semibold">Create Invite</Button>
+                </div>
+            </ForegroundCard>
+
         </div>
     )
 }

@@ -1,7 +1,9 @@
 import { Button, Field, Fieldset, Input, Label, Legend } from "@headlessui/react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../util/helpers";
+import type { InviteStatus } from "../util/NetworkModels";
 
 export default function Register() {
 
@@ -16,6 +18,7 @@ export default function Register() {
     const [password, setPassword] = useState<string>();
     const [passwordConfirm, setPasswordConfirm] = useState<string>();
     const [inviteCode, setInviteCode] = useState<string>();
+    const [invitesRequired, setInvitesRequired] = useState<boolean>(true)
 
     const [error, setError] = useState<string | null>(null)
 
@@ -80,13 +83,26 @@ export default function Register() {
             return;
         }
 
+        if (invitesRequired && (!inviteCode || inviteCode.trim() == ""))
+        {
+            setError("An invite code is required!")
+            return;
+        }
+
         try {
-            await register(String(username), String(email), String(displayName), String(password));
+            await register(String(username), String(email), String(displayName), String(password), String(inviteCode));
             navigate(location.state?.from?.pathname ?? "/", { replace: true });
         } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
         }
     }
+
+    useEffect(() => {
+        api<InviteStatus>("/invite/status")
+        .then(status => {
+            setInvitesRequired(status.invites_required)
+        })
+    }, [])
 
     return (
         <div className="min-h-screen flex items-center justify-center">
@@ -168,7 +184,6 @@ export default function Register() {
                         <Input 
                         onInput={(e) => setInviteCode(e.currentTarget.value)}
                         value={inviteCode}
-                        type="password" 
                         className="mt-1 block bg-background-dark w-full p-2 rounded-md focus:outline-none data-hover:bg-zinc-600/25 duration-200" 
                         name="inviteCode"/>
                     </Field>

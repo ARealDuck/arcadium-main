@@ -16,6 +16,7 @@ from app.core.enums import TokenPurpose
 from app.models import User, UserSession
 from app.api.dependencies import COOKIE_NAME, DbSession, get_current_user, set_session_cookie
 from app.job.enqueue import enqueue_send_verify_email, enqueue_tachi_check, enqueue_tachi_seed
+from app.models.invites import Invite
 from app.models.tokens import Token
 from app.schemas.job import JobOut
 from app.core.security import hash_password, hash_token, verify_password
@@ -27,6 +28,22 @@ Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)):
+    invite = None
+
+    print(settings.invites_required)
+
+    if settings.invites_required or body.invite_code:
+        if not body.invite_code:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "An invite code is required.")
+
+        invite = db.scalar(
+            select(Invite)
+            .where(Invite.code == body.invite_code.strip(), Invite.used_by.is_(None))
+            .with_for_update()
+        )
+        if invite is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "That invite code is invalid or already used.")
+
     taken = db.scalar(select(User).where(func.lower(User.username) == body.username.lower()))
 
     if taken:
@@ -48,6 +65,10 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
     except IntegrityError:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Username or email is taken")
+
+    if invite:
+        invite.used_by = user.id
+        invite.used_at = func.now()
 
     set_session_cookie(db, user, response)
     user.last_login_at = func.now()

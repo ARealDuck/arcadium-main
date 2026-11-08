@@ -16,7 +16,7 @@ export default function UserButton() {
                 </p>
 
                 <ProfileImage 
-                username="test"
+                displayName={user?.display_name}
                 src={user?.avatar_url}
                 />
             </MenuButton>

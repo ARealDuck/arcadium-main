@@ -13,6 +13,7 @@ class RegisterIn(BaseModel):
     email: EmailStr
     display_name: DisplayName
     password: str = Field(min_length=8, max_length=128)
+    invite_code: str | None = None
 
     @field_validator("display_name")
     @classmethod

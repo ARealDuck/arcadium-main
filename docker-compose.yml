@@ -24,6 +24,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
       WATCHFILES_FORCE_POLLING: "true"
       MEDIA_DIR: /media
+      INVITES_REQUIRED: ${INVITES_REQUIRED}
     ports:
       - "8000:8000"
     volumes:
@@ -53,6 +54,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY}
       FRONTEND_URL: ${FRONTEND_URL}
       PYTHONUNBUFFERED: "1"
+      MEDIA_DIR: /media
     volumes:
       - ./backend:/app
     depends_on:

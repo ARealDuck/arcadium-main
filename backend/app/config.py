@@ -7,5 +7,6 @@ class Settings(BaseSettings):
     resend_api_key: str | None = None
     frontend_url: str = "http://localhost:5173"
     media_dir: str
+    invites_required: bool = True
 
 settings = Settings()
