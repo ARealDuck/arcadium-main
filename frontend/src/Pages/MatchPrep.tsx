@@ -11,6 +11,7 @@ import { Podium } from "lucide-react";
 import { playtype as playtypeCorrect, games, ladder as ladderCorrect } from "../util/dictionaryCorrections";
 import { useDebounce } from "../hooks/useDebounce";
 import TableSection from "../Components/Match/TableSection";
+import ArcButton from "../Components/General/ArcButton";
 
 export default function MatchPrep() {
     const { user, loading } = useAuth();
@@ -58,11 +59,12 @@ export default function MatchPrep() {
         { tableIcon: "h◎", tableName: "Scratch 3rd", category: "skillset" },
         { tableIcon: "so", tableName: "Solar", category: "skillset" },
         { tableIcon: "sn", tableName: "Supernova", category: "skillset" }
-    ]
+]
 
     const generalTables = TABLES.filter(t => t.category === "general");
     const skillsetTables = TABLES.filter(t => t.category === "skillset");
     const skillsetSelected = skillsetTables.filter(t => selected.includes(t.tableIcon)).length;
+    const [ratingStatus, setRatingStatus] = useState<"loading" | "none" | "seeding">("loading");
 
     const allSkillset = skillsetSelected === skillsetTables.length;
     const selectedCharts = selected.reduce((sum, icon) => sum + (tableCounts?.[icon] ?? 0), 0);
@@ -275,7 +277,7 @@ export default function MatchPrep() {
                                     <div>
                                         <p className="font-sanchez">{selected.length} Tables &middot; up to {selectedCharts} Charts In Range</p>
                                     </div>
-                                    <Button onClick={handleQueue} disabled={selectedCharts < 25} className="font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-bold">Queue <Podium className="size-5 font-bold"/></Button>
+                                    <ArcButton disabled={selectedCharts < 25} onClick={handleQueue}>Queue <Podium className="size-5 font-bold"/></ArcButton>
                                 </div>
                             </ForegroundCard>
                         </div>

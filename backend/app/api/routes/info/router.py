@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.ratings import TIERS, ELO_BASE, ELO_FLOOR, ELO_PER_LEVEL
+from app.logic.ratings import TIERS, ELO_BASE, ELO_FLOOR, ELO_PER_LEVEL
 from app.schemas.info import TierInfoOut, TierOut, SiegCalculations
 
 router = APIRouter(prefix="/info", tags=["info"])

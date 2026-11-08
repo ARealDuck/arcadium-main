@@ -12,7 +12,7 @@ from app.models.tokens import Token
 from app.services.tachi import TachiError
 from app.services.tachi import tachi_get
 from app.services.match import cancel_stale_matches
-from app.ratings import sieg_to_elo
+from app.logic.ratings import sieg_to_elo
 from app.logic.match import lamp_counts_as_win
 from app.services.match import resolve_match, get_best_score_for_match
 

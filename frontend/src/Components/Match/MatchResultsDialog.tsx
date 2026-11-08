@@ -5,6 +5,7 @@ import { toFixedTruncated } from "../../util/helpers";
 import { useEffect, useMemo, useState } from "react";
 import { buildSteps } from "../../util/rank";
 import { useRank, useTiers } from "../../hooks/useTiers";
+import ArcButton from "../General/ArcButton";
 
 type MatchResultDialogProps = {
   open: boolean;
@@ -97,13 +98,13 @@ export function MatchResultsDialog({ open, win, onClose, ratingChange, rating_be
           </p>
           <div className="flex flex-col lg:flex-row gap-1 lg:gap-20 w-5/6 mx-auto lg:w-full">
             <Button onClick={() => onClose(false)} className="font-sanchez w-full h-10  mt-6 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 duration-200 cursor-pointer rounded-sm font-semibold">Close</Button>
-            <Button
+            <ArcButton
               onClick={() => onClose(true)}
               className="mt-6 w-full h-10 rounded-md bg-highlight font-semibold
                         data-hover:brightness-110 transition cursor-pointer"
             >
               Queue Again
-            </Button>
+            </ArcButton>
           </div>
 
         </DialogPanel>

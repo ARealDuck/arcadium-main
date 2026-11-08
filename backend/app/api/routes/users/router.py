@@ -4,6 +4,8 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import CurrentUser, DbSession
+from app.core.constants import SEED_PRESETS
+from app.logic.ratings import elo_to_sieg, initial_rating, sieg_to_elo
 from app.services.match import get_standing, get_active_match_by_userid, SEARCH_WINDOW_START
 from app.services.user import (
     get_user_by_id, 
@@ -25,7 +27,7 @@ from app.job.enqueue import enqueue_tachi_seed
 
 from app.schemas.match import MatchOut
 from app.schemas.auth import UserRatingOut
-from app.schemas.user import UserProfileInfoOut, ProfileGenericOut, BMSProfileOut, LadderStatsOut
+from app.schemas.user import SeedOptionOut, SeedOptionsOut, SetupIn, UserProfileInfoOut, ProfileGenericOut, BMSProfileOut, LadderStatsOut
 
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -54,21 +56,27 @@ def get_user_rating_filtered(game: str, playtype: str, ladder: str, db: DbSessio
     raise HTTPException(status.HTTP_404_NOT_FOUND, "No rating on this ladder yet!")
 
 @router.post("/me/ratings/{game}/{playtype}/{ladder}", response_model=UserRatingOut)
-def set_up_user_rating(db: DbSession, user: CurrentUser, game: str, playtype: str, ladder: str, response: Response):
+def set_up_user_rating(db: DbSession, user: CurrentUser, game: str, playtype: str, ladder: str, response: Response, body: SetupIn | None = None):
 
     rating = get_player_rating(db, user.id, game, playtype, ladder)
     if rating is not None:
         return build_rating_out(db, rating, user.id)
 
-    seed_key = f"{game}:{playtype}:{ladder}"
+    if body and body.source == "preset":
+        if body.preset is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Pick a starting level.")
+        seed = {"elo": sieg_to_elo(SEED_PRESETS[body.preset]), "numScores": None }
+    else:
+        seed_key = f"{game}:{playtype}:{ladder}"
     
-    if seed_key not in user.rating_seeds:
-        enqueue_tachi_seed(db, user.id)
-        db.commit()
-        return JSONResponse(status_code=202, content={"message": "Your seed is being set up!"})
+        if seed_key not in user.rating_seeds:
+            enqueue_tachi_seed(db, user.id)
+            db.commit()
+            return JSONResponse(status_code=202, content={"message": "Your seed is being set up!"})
+        seed = user.rating_seeds[seed_key]
 
     try:
-        rating = seed_player_rating(db, user.id, game, playtype, ladder, user.rating_seeds[seed_key])
+        rating = seed_player_rating(db, user.id, game, playtype, ladder, seed)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -76,6 +84,20 @@ def set_up_user_rating(db: DbSession, user: CurrentUser, game: str, playtype: st
     response.status_code = status.HTTP_201_CREATED
     return build_rating_out(db, rating, user.id)
 
+@router.get("/me/ratings/{game}/{playtype}/{ladder}/seed-options", response_model=SeedOptionsOut)
+def get_seed_options(user: CurrentUser, game: str, playtype: str, ladder: str):
+    presets = []
+    for key, level in SEED_PRESETS.items():
+        elo, _ = initial_rating({"elo": sieg_to_elo(level), "numScores": None}, ladder)
+        presets.append(SeedOptionOut(key=key, level=level, elo=elo))
+
+    tachi = None
+    seed = user.rating_seeds.get(f"{game}:{playtype}:{ladder}")
+    if seed:
+        elo, _ = initial_rating(seed, ladder)
+        tachi = SeedOptionOut(key="tachi", level=elo_to_sieg(seed["elo"]), elo=elo)
+
+    return SeedOptionsOut(presets=presets, tachi=tachi)
 
 @router.get("/me/can-queue")
 def can_queue(user: CurrentUser):

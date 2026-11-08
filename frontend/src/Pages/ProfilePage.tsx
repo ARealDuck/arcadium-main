@@ -16,6 +16,7 @@ import { api } from "../util/helpers";
 import type { ProfileRating, UserProfileInfo } from "../util/NetworkModels";
 import ForegroundCard from "../Components/General/ForegroundCard";
 import { LoaderCircle } from "lucide-react";
+import LoadingSpinner from "../Components/General/LoadingSpinner";
 
 export default function ProfilePage() {
     const { user, loading } = useAuth();
@@ -52,7 +53,7 @@ export default function ProfilePage() {
     if (loading || !profile)
 
     return (
-            <LoaderCircle className="fixed inset-0 m-auto size-4 animate-spin" />
+            <LoadingSpinner className="fixed inset-0" />
         )
 
     return (

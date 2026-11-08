@@ -10,6 +10,7 @@ import { api, waitForJob } from "../util/helpers";
 import type { Job, User } from "../util/NetworkModels";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router";
+import LoadingSpinner from "../Components/General/LoadingSpinner";
 
 export default function OnboardingPage() {
 
@@ -132,7 +133,7 @@ export default function OnboardingPage() {
                                     !loadTachiKey ?
                                     <p className="font-sanchez text-subtext mt-3">No profile loaded...</p> :
                                     <div className="flex items-center justify-start mt-3">
-                                        <LoaderCircle className="size-4 animate-spin mr-2"/>
+                                        <LoadingSpinner className="mr-2"/>
                                         <p className="font-sanchez text-subtext">Loading Profile...</p>
                                     </div> : 
                                 <p className="font-sanchez mt-3 font-bold text-lg"><span className="text-subtext">{tachiProfile.username}</span></p> :
@@ -149,7 +150,7 @@ export default function OnboardingPage() {
                                         data-disabled:bg-zinc-700 data-disabled:text-zinc-400 data-disabled:cursor-not-allowed"
                             >
                             <span className={loadConfirmKey ? "invisible" : ""}>Confirm Link</span>
-                            {loadConfirmKey && <LoaderCircle className="absolute inset-0 m-auto size-4 animate-spin" />}
+                            {loadConfirmKey && <LoadingSpinner className="absolute inset-0"/>}
                             </Button>
                         </div>
                         
