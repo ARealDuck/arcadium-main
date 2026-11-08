@@ -18,7 +18,7 @@ from app.services.user import (
     get_activity,
     get_lamps
     )
-from app.services.rating import get_player_rating, seed_player_rating
+from app.services.rating import get_player_rating, preset_seed_elo, seed_player_rating
 from app.api.routes.users.responses import build_rating_out
 from app.core.errors import SeedPending
 from app.logic.ratings import ELO_FLOOR, find_rating_for_filter
@@ -65,7 +65,8 @@ def set_up_user_rating(db: DbSession, user: CurrentUser, game: str, playtype: st
     if body and body.source == "preset":
         if body.preset is None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Pick a starting level.")
-        seed = {"elo": sieg_to_elo(SEED_PRESETS[body.preset]), "numScores": None }
+        level = SEED_PRESETS[body.preset]
+        seed = {"elo": preset_seed_elo(db, ladder, level), "numScores": None, "preset": True}
     else:
         seed_key = f"{game}:{playtype}:{ladder}"
     
@@ -85,17 +86,18 @@ def set_up_user_rating(db: DbSession, user: CurrentUser, game: str, playtype: st
     return build_rating_out(db, rating, user.id)
 
 @router.get("/me/ratings/{game}/{playtype}/{ladder}/seed-options", response_model=SeedOptionsOut)
-def get_seed_options(user: CurrentUser, game: str, playtype: str, ladder: str):
+def get_seed_options(db: DbSession, user: CurrentUser, game: str, playtype: str, ladder: str):
     presets = []
     for key, level in SEED_PRESETS.items():
-        elo, _ = initial_rating({"elo": sieg_to_elo(level), "numScores": None}, ladder)
+        seed = {"elo": preset_seed_elo(db, ladder, level), "numScores": None, "preset": True}
+        elo, _ = initial_rating(seed, ladder)
         presets.append(SeedOptionOut(key=key, level=level, elo=elo))
 
     tachi = None
     seed = user.rating_seeds.get(f"{game}:{playtype}:{ladder}")
     if seed:
         elo, _ = initial_rating(seed, ladder)
-        tachi = SeedOptionOut(key="tachi", level=elo_to_sieg(seed["elo"]), elo=elo)
+        tachi = SeedOptionOut(key="tachi", level=elo_to_sieg(elo), elo=elo)
 
     return SeedOptionsOut(presets=presets, tachi=tachi)
 

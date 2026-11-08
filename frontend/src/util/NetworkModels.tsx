@@ -184,3 +184,14 @@ export interface Invites {
     invites: Invite[];
     available: number;
 }
+
+export interface SeedOption {
+    key: string;
+    level: number;
+    elo: number;
+}
+
+export interface SeedOptions {
+    presets: SeedOption[];
+    tachi: SeedOption | null;
+}

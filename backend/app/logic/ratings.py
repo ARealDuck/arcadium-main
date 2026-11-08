@@ -38,7 +38,8 @@ def seed_rd(num_scores: int | None) -> float:
 
 def initial_rating(seed: dict | None, ladder: str) -> tuple[float, float]:
     elo = seed["elo"] if seed else ELO_FLOOR
-    elo = max(ELO_FLOOR, elo - LADDER_SEED_OFFSET.get(ladder, 0))
+    offset = 0 if seed and seed.get("preset") else LADDER_SEED_OFFSET.get(ladder, 0)
+    elo = max(ELO_FLOOR, elo - offset)
     rd = seed_rd(seed["numScores"] if seed else None)
     return elo, rd
 
