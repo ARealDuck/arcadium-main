@@ -1,5 +1,5 @@
 import { Button, Field, Fieldset, Input, Label, Legend } from "@headlessui/react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { useEffect, useState } from "react";
 import { api } from "../util/helpers";
@@ -8,8 +8,11 @@ import type { InviteStatus } from "../util/NetworkModels";
 export default function Register() {
 
     const { register } = useAuth();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const location = useLocation();
+
+    const invite = searchParams.get("invite");
     
     const [username, setUsername] = useState<string>();
     const [displayName, setDisplayName] = useState<string>();
@@ -17,7 +20,7 @@ export default function Register() {
     const [emailConfirm, setEmailConfirm] = useState<string>();
     const [password, setPassword] = useState<string>();
     const [passwordConfirm, setPasswordConfirm] = useState<string>();
-    const [inviteCode, setInviteCode] = useState<string>();
+    const [inviteCode, setInviteCode] = useState<string>(invite ?? "");
     const [invitesRequired, setInvitesRequired] = useState<boolean>(true)
 
     const [error, setError] = useState<string | null>(null)
