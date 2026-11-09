@@ -1,0 +1,17 @@
+arcadium.ac {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+www.arcadium.ac {
+	redir https://arcadium.ac{uri} permanent
+}
