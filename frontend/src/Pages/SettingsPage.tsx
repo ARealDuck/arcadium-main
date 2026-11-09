@@ -81,7 +81,11 @@ export default function SettingsPage() {
                 </Button>
             </ForegroundCard>
 
-            <ForegroundCard>
+            <ForegroundCard className="mt-5">
+                <p className="font-sanchez text-lg">Integrations</p>
+            </ForegroundCard>
+
+            <ForegroundCard className="mt-5">
                 <div className="flex flex-row flex-wrap items-center justify-between gap-3 mb-5">
                     <p className="font-sanchez text-lg">Invites</p>
 
