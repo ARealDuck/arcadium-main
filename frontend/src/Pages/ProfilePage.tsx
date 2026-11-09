@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
+import ForegroundCard from "../Components/General/ForegroundCard";
+import LoadingSpinner from "../Components/General/LoadingSpinner";
 import ProfileActivityCalendar from "../Components/Profile/ProfileActivityCalendar";
 import ProfileGameTabs from "../Components/Profile/ProfileGameTabs";
 import ProfileHeader from "../Components/Profile/ProfileHeader";
@@ -10,24 +13,20 @@ import ProfileStatRow from "../Components/Profile/ProfileStatRow";
 import ProfileTableWinrate from "../Components/Profile/ProfileTableWinrate";
 import ProfileTierCard from "../Components/Profile/ProfileTierCard";
 import { useAuth } from "../hooks/useAuth";
-import { bmsAACollector, bmsVeteran } from "../util/milestoneDictionaries";
-import { useEffect, useState } from "react";
 import { api } from "../util/helpers";
+import { bmsAACollector, bmsVeteran } from "../util/milestoneDictionaries";
 import type { ProfileRating, UserProfileInfo } from "../util/NetworkModels";
-import ForegroundCard from "../Components/General/ForegroundCard";
-import { LoaderCircle } from "lucide-react";
-import LoadingSpinner from "../Components/General/LoadingSpinner";
 
 export default function ProfilePage() {
-    const { user, loading } = useAuth();
+    const { loading } = useAuth();
     const { id } = useParams();
 
     const [profile, setProfile] = useState<UserProfileInfo>();
     const [rating, setRating] = useState<ProfileRating>();
 
     const [ladder, setLadder] = useState<string>("ec");
-    const [game, setGame] = useState<"bms">("bms");
-    const [playtype, setPlaytype] = useState<"7k">("7k")
+    const [game] = useState<"bms">("bms");
+    const [playtype] = useState<"7k">("7k")
 
     useEffect(() => {
         if (!id)

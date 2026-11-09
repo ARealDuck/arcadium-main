@@ -1,34 +1,32 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { QueueIcon } from "../Components/Home/QueueCard";
-import type { Match, TableCounts, UserRating } from "../util/NetworkModels";
-import { api, ApiError, apiWithStatus, toFixedTruncated } from "../util/helpers";
-import { useLocation, useNavigate, useParams } from "react-router";
-import type { TableInfo } from "../util/MiscInterfaces";
 import { Input, Radio, RadioGroup } from "@headlessui/react";
-import ForegroundCard from "../Components/General/ForegroundCard";
 import { Podium } from "lucide-react";
-import { playtype as playtypeCorrect, games, ladder as ladderCorrect } from "../util/dictionaryCorrections";
-import { useDebounce } from "../hooks/useDebounce";
-import TableSection from "../Components/Match/TableSection";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router";
 import ArcButton from "../Components/General/ArcButton";
+import ForegroundCard from "../Components/General/ForegroundCard";
 import LoadingSpinner from "../Components/General/LoadingSpinner";
+import { QueueIcon } from "../Components/Home/QueueCard";
+import TableSection from "../Components/Match/TableSection";
 import SeedPicker from "../Components/MatchPrep/SeedPicker";
+import { useAuth } from "../hooks/useAuth";
+import { useDebounce } from "../hooks/useDebounce";
+import type { TableInfo } from "../util/MiscInterfaces";
+import type { Match, TableCounts, UserRating } from "../util/NetworkModels";
+import { games, ladder as ladderCorrect, playtype as playtypeCorrect } from "../util/dictionaryCorrections";
+import { api, ApiError, apiWithStatus, toFixedTruncated } from "../util/helpers";
 
 export default function MatchPrep() {
-    const { user, loading } = useAuth();
+    const { user, } = useAuth();
     const { game, playtype, ladder } = useParams();
 
     const [rating, setRating] = useState<UserRating>()
     const [error, setError] = useState<string>();
-    const [settingUp, setSettingUp] = useState<boolean>(false);
 
     const [selected, setSelected] = useState<string[]>([])
     const [matchType, setMatchType] = useState<"competitive" | "casual">("competitive")
     const [targetRating, setTargetRating] = useState<number>(0)
     
     const [tableCounts, setTableCounts] = useState<TableCounts>();
-    const [casualCounts, setCasualCounts] = useState<TableCounts>();
 
     const debouncedRating = useDebounce(targetRating, 400);
     const navigate = useNavigate();
@@ -65,10 +63,8 @@ export default function MatchPrep() {
 
     const generalTables = TABLES.filter(t => t.category === "general");
     const skillsetTables = TABLES.filter(t => t.category === "skillset");
-    const skillsetSelected = skillsetTables.filter(t => selected.includes(t.tableIcon)).length;
     const [ratingStatus, setRatingStatus] = useState<"loading" | "none" | "seeding" | "done">("loading");
 
-    const allSkillset = skillsetSelected === skillsetTables.length;
     const selectedCharts = selected.reduce((sum, icon) => sum + (tableCounts?.[icon] ?? 0), 0);
     const MAX_ELO = 4300;
     const MIN_ELO = 100;
@@ -222,8 +218,8 @@ export default function MatchPrep() {
                 <div className="flex lg:flex-row flex-col w-full max-w-7xl lg:items-start gap-8 mt-5">
                     <ForegroundCard className="lg:w-72 w-full shrink-0">
                         <QueueIcon
-                        placed={rating.placed}
-                        rating={rating.display_rating}
+                        placed={rating?.placed}
+                        rating={rating?.display_rating}
                         displayRating={true}
                         displayProgress={true}
                         />

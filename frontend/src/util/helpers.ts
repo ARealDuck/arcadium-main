@@ -151,7 +151,6 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 export async function waitForRating(
   url: string,
-  isCancelled: () => boolean,
   { interval = 1500, maxAttempts = 40 } = {}
 ) {
   for (let i = 0; i < maxAttempts; i++) {

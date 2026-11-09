@@ -2,7 +2,6 @@ import { TABLE_NAMES } from "../../util/dictionaryCorrections";
 import { cn } from "../../util/helpers";
 import type { TableWinrate } from "../../util/NetworkModels";
 import ForegroundCard from "../General/ForegroundCard";
-import ProgressBar from "../General/ProgressBar";
 import ProfileIndividualTableProgress from "./ProfileIndividualTableProgress";
 
 interface ProfileTableWinrateProps {

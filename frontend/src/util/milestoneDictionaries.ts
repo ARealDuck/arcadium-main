@@ -1,4 +1,4 @@
-import type { Milestone, MilestoneLadder } from "./MiscInterfaces";
+import type { MilestoneLadder } from "./MiscInterfaces";
 
 export const bmsAACollector: MilestoneLadder = [
     { tierName: "Copper", value: 5 },

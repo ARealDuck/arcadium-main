@@ -22,6 +22,8 @@ export default function ProfileIndividualTableProgress({ className, tableIcon, t
                 </div>  
                 <ProgressBar
                 value={winRate}
+                animate={false}
+                durationMs={0}
                 />
             </div>
             <p className="font-mono self-stretch items-center rounded-md text-center">{toFixedTruncated(winRate, 0)}%</p>

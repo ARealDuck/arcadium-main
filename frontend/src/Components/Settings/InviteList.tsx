@@ -7,10 +7,10 @@ interface InviteListProps {
 }
 
 export default function InviteList({ invites }: InviteListProps) {
-    const formatDate = (iso) => 
+    const formatDate = (iso: string) => 
         new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })
 
-    const copyLink = (code) =>
+    const copyLink = (code: string) =>
         navigator.clipboard.writeText(`${window.location.origin}/register?invite=${code}`)
 
     return (
@@ -38,7 +38,7 @@ export default function InviteList({ invites }: InviteListProps) {
                         )}
 
                         <span className="text-xs text-zinc-400">
-                            {formatDate(used ? invite.used_at : invite.created_at)}
+                            {formatDate(invite.used_at ?? invite.created_at)}
                         </span>
 
                         {used ? (

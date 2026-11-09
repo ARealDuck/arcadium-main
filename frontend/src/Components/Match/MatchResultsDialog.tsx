@@ -1,23 +1,22 @@
-import { Dialog, DialogBackdrop, DialogPanel, DialogTitle, Button } from "@headlessui/react";
-import { QueueIcon } from "../Home/QueueCard";
-import ProgressBar from "../General/ProgressBar";
-import { toFixedTruncated } from "../../util/helpers";
+import { Button, Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { useEffect, useMemo, useState } from "react";
-import { buildSteps } from "../../util/rank";
 import { useRank, useTiers } from "../../hooks/useTiers";
+import { toFixedTruncated } from "../../util/helpers";
+import { buildSteps } from "../../util/rank";
 import ArcButton from "../General/ArcButton";
+import ProgressBar from "../General/ProgressBar";
+import { QueueIcon } from "../Home/QueueCard";
 
 type MatchResultDialogProps = {
   open: boolean;
   win: boolean;
   onClose: (queue: boolean) => void;
-  ratingChange?: number;
   rating_before: number;
   rating_after: number;
   placement?: { played: number; required: number }
 };
 
-export function MatchResultsDialog({ open, win, onClose, ratingChange, rating_before, rating_after, placement }: MatchResultDialogProps) {
+export function MatchResultsDialog({ open, win, onClose, rating_before, rating_after, placement }: MatchResultDialogProps) {
 
   const inPlacements = !!placement && placement.played < placement.required
 

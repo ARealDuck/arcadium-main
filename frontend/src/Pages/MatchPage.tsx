@@ -1,20 +1,19 @@
-import { useNavigate, useParams } from "react-router";
-import { useAuth } from "../hooks/useAuth"
+import { Button, Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api, calculateTimeLeftPercentage, formatClock, waitForJob, waitForMatch } from "../util/helpers";
-import type { Job, JobResultMatchSubmit, Match, MatchSubmit } from "../util/NetworkModels";
-import { QueueIcon } from "../Components/Home/QueueCard";
-import { formatTime, useCountdown } from "../hooks/useCountdown";
-import { Button, MenuButton, Menu, MenuItems, MenuItem } from "@headlessui/react";
-import { ChevronDown, LoaderCircle } from "lucide-react";
-import { MatchResultsDialog } from "../Components/Match/MatchResultsDialog";
+import { useNavigate, useParams } from "react-router";
+import ArcButton from "../Components/General/ArcButton";
 import ForegroundCard from "../Components/General/ForegroundCard";
+import LoadingSpinner from "../Components/General/LoadingSpinner";
 import ProgressBar from "../Components/General/ProgressBar";
-import { toFixedTruncated } from "../util/helpers";
+import { QueueIcon } from "../Components/Home/QueueCard";
+import { MatchResultsDialog } from "../Components/Match/MatchResultsDialog";
 import ScoreSummary from "../Components/Match/ScoreSummary";
 import { useActiveMatch } from "../hooks/useActiveMatch";
-import LoadingSpinner from "../Components/General/LoadingSpinner";
-import ArcButton from "../Components/General/ArcButton";
+import { useAuth } from "../hooks/useAuth";
+import { formatTime, useCountdown } from "../hooks/useCountdown";
+import { api, calculateTimeLeftPercentage, formatClock, toFixedTruncated, waitForJob, waitForMatch } from "../util/helpers";
+import type { Job, JobResultMatchSubmit, Match, MatchSubmit } from "../util/NetworkModels";
 
 export default function MatchPage() {
 

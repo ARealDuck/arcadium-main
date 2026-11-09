@@ -1,40 +1,27 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import QueueCard from "./QueueCard";
-import type { UserRating, Tier, CanQueue, Job, TierData } from "../../util/NetworkModels";
-import { api, waitForJob } from "../../util/helpers";
-import { Button, Field, Fieldset, Input, Label } from "@headlessui/react";
-import { MessageCircleDashedCheck } from "lucide-react";
+import type { UserRating } from "../../util/NetworkModels";
+import { api } from "../../util/helpers";
 
 export default function QueueDashboard() {
 
     type Status = "idle" | "saving" | "verifying" | "done" | "error"
 
-    const [status, setStatus] = useState<Status>("idle");
-    const [message, setMessage] = useState<string | null>(null);
-
+    const [status] = useState<Status>("idle");
     const { user, loading } = useAuth();
 
     const [ratings, setRatings] = useState<UserRating[]>([])
-    const [tiers, setTiers] = useState<Tier[]>([])
-    const [canQueue, setCanQueue] = useState<CanQueue>({can_queue: false})
-    const [tachiKey, setTachiKey] = useState<string>();
-    const[error, setError] = useState<string>()
 
     useEffect(() => {
         if (!user) return;
 
         Promise.all([
             api<UserRating[]>("/users/me/ratings"),
-            api<TierData>("/info/tiers"),
-            api<CanQueue>("/users/me/can-queue")
         ])
-        .then(([ratings, tiers, canQueue]) => {
+        .then(([ratings]) => {
             setRatings(ratings);
-            setTiers(tiers.tiers);
-            setCanQueue(canQueue)
         })
-        .catch(err => setError(err.message))
+        .catch(err => console.log(err))
     }, [user, status === "done"])
 
     const displayQueueCards = () => {

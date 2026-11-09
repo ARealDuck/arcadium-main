@@ -1,13 +1,9 @@
 import { useAuth } from "../../hooks/useAuth";
 
-import { Button } from "@headlessui/react";
-import { CircleArrowOutUpRight, Podium } from "lucide-react";
-import ProgressBar from "../General/ProgressBar";
-import type { Match, Tier, UserRating } from "../../util/NetworkModels";
-import { api, toFixedTruncated, toRoman, winRate } from "../../util/helpers";
-import { returnIcon } from "../../util/rankedIconPicker";
-import { useNavigate } from "react-router";
 import { useRank } from "../../hooks/useTiers";
+import type { Tier, UserRating } from "../../util/NetworkModels";
+import { toFixedTruncated, toRoman, winRate } from "../../util/helpers";
+import ProgressBar from "../General/ProgressBar";
 
 interface QueueCardProps {
     rating: UserRating;
@@ -37,14 +33,14 @@ export function QueueIcon(props: QueueIconProps) {
 
     return (
     <div className="w-full flex items-center h-ful flex-col gap-4">
-        <div className="h-32 flex items-end justify-center">
+        {/* <div className="h-32 flex items-end justify-center">
             {
                 rank.ranked || props.tierName ?
                 <img className="h-28 w-auto shrink-0 object-contain [image-rendering:pixelated]" src={props.rating ? returnIcon(rank.tier.name) : returnIcon(props.tierName ?? "Unranked")}/> :
                 <img className="h-28 w-auto shrink-0 object-contain [image-rendering:pixelated]" src={returnIcon("Unranked")}/>
             }
 
-        </div>
+        </div> */}
         <div className="font-archivo items-center font-light text-xl tracking-widest">
             {
                 props.tierName
@@ -85,15 +81,7 @@ export function QueueIcon(props: QueueIconProps) {
 }
 
 export default function QueueCard(props: QueueCardProps) {
-    const { user, loading } = useAuth();
-    const navigate = useNavigate();
-
-    const MatchType = {
-        COMPETITIVE: "competitive",
-        CASUAL: "casual"
-    }
-
-    type MatchType = (typeof MatchType)[keyof typeof MatchType];
+    const { loading } = useAuth();
     
     return loading ? (
         <></>
@@ -144,13 +132,13 @@ export default function QueueCard(props: QueueCardProps) {
                 </div>
 
             <div className="flex flex-row justify-end gap-5 mt-5">
-                <div className="">
+                {/* <div className="">
                     <Button className="font-sanchez inline-flex items-center gap-2 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 duration-200 cursor-pointer p-3 rounded-sm font-semibold">Queue Casual <CircleArrowOutUpRight className="size-4 font-bold"/></Button>
                 </div>
 
                 <div className="text-right">
                     <Button onClick={() => handleQueue(MatchType.COMPETITIVE)} className="font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-semibold">Queue Ranked <Podium className="size-5 font-bold"/></Button>
-                </div>
+                </div> */}
             </div>
 
             </div>

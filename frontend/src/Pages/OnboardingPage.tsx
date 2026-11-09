@@ -1,16 +1,16 @@
 import { Button, Disclosure, DisclosureButton, DisclosurePanel, Field, Fieldset, Input, Label } from "@headlessui/react";
-import { ChevronDown, LoaderCircle, MessageCircleDashedCheck } from "lucide-react";
+import { ChevronDown, MessageCircleDashedCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 
-import MyIntegrations from "../assets/onboarding_assets/tachi_my_integrations.png"
+import { useNavigate } from "react-router";
 import CreateNewAPIKey from "../assets/onboarding_assets/tachi_create_key.png";
 import CreateAPIKey from "../assets/onboarding_assets/tachi_create_key_2.png";
+import MyIntegrations from "../assets/onboarding_assets/tachi_my_integrations.png";
+import LoadingSpinner from "../Components/General/LoadingSpinner";
+import { useAuth } from "../hooks/useAuth";
 import { api, waitForJob } from "../util/helpers";
 import type { Job, User } from "../util/NetworkModels";
-import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router";
-import LoadingSpinner from "../Components/General/LoadingSpinner";
 
 export default function OnboardingPage() {
 

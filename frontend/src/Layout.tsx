@@ -1,25 +1,24 @@
 import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { ChevronDown, ChevronRight, MenuIcon, X } from "lucide-react";
+import { ChevronDown, MenuIcon, X } from "lucide-react";
 import { Link, Outlet, useLocation, useMatch } from "react-router";
 import UserButton from "./Components/Navigation/UserButton";
 
-import arcadiumTextLogo from './assets/Arcadium Logo Text.png';
-import arcadiumIconLogo from './assets/Arcadium Logo Icon.png';
-import { useAuth } from "./hooks/useAuth";
 import { useEffect, useState } from "react";
-import { type CanQueue, type Match } from "./util/NetworkModels";
+import arcadiumIconLogo from './assets/Arcadium Logo Icon.png';
+import arcadiumTextLogo from './assets/Arcadium Logo Text.png';
+import { useActiveMatch } from "./hooks/useActiveMatch";
+import { useAuth } from "./hooks/useAuth";
+import { type CanQueue } from "./util/NetworkModels";
 import { api } from "./util/helpers";
-import { ActiveMatchProvider, useActiveMatch } from "./hooks/useActiveMatch";
 
 export default function Layout() {
 
-    const {user, loading} = useAuth();
+    const { user } = useAuth();
     const onMatchPage = useMatch("/match/:id");
     const { activeMatch } = useActiveMatch();
 
     const [canQueue, setCanQueue] = useState<CanQueue>({can_queue: false});
 
-    const [menuOpen, setMenuOpen] = useState<boolean>(false);
     const location = useLocation();
 
     useEffect(() => {

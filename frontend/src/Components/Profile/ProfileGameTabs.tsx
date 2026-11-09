@@ -1,8 +1,8 @@
 import { Button, Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react"
-import type { ProfileRating, UserRating } from "../../util/NetworkModels"
 import { CornerDownRight } from "lucide-react"
 import { ladder } from "../../util/dictionaryCorrections"
 import { cn } from "../../util/helpers"
+import type { ProfileRating } from "../../util/NetworkModels"
 
 interface ProfileGameTabsProps {
     ratings: ProfileRating[];

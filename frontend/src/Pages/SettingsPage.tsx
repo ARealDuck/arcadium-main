@@ -15,9 +15,6 @@ export default function SettingsPage() {
     const [dragging, setDragging] = useState(false);
     const [invites, setInvites] = useState<Invites>();
 
-    const [uploading, setUploading] = useState<boolean>(false);
-    const [error, setError] = useState<string>();
-
     function pick(f: File | undefined) {
         if (!f || !f.type.startsWith("image/")) return;
         setFile(f);
@@ -38,16 +35,13 @@ export default function SettingsPage() {
         const form = new FormData();
         form.append("file", f);
 
-        setUploading(true)
-        setError(undefined);
-
         try {
             const updated = await api<User>("/auth/me/avatar", { method: "POST", body: form })
             setUser(updated)
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Upload failed")
+            console.log(err instanceof Error ? err.message : "Upload failed")
         } finally {
-            setUploading(false);
+            // set uploading here
         }
 
     }
