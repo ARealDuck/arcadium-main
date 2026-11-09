@@ -8,5 +8,6 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     media_dir: str
     invites_required: bool = True
+    admin_user_ids: list[int] = []
 
 settings = Settings()

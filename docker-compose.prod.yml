@@ -24,6 +24,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
       MEDIA_DIR: /media
       INVITES_REQUIRED: ${INVITES_REQUIRED}
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS}
     volumes:
       - media:/media
     depends_on:
