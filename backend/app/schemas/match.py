@@ -15,6 +15,10 @@ class MatchScoreOut(BaseModel):
     percent: float | None
     bp: int | None
 
+class PlacementOut(BaseModel):
+    played: int
+    required: int
+
 class MatchOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,6 +43,7 @@ class MatchOut(BaseModel):
     start_time: datetime
     cutoff_time: datetime
     end_time: datetime | None
+    placement: PlacementOut | None = None
 
     @model_validator(mode="after")
     def keep_only_match_ladder(self):
