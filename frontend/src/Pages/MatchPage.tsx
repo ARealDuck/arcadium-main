@@ -144,6 +144,7 @@ export default function MatchPage() {
                 match.player_display_after ?             
                 <MatchResultsDialog
                 open={showWin}
+                placement={match.placement}
                 win={matchResult === "win" ? true : false}
                 onClose={(queue: boolean) => {
                     setShowWin(false);

@@ -1,18 +1,25 @@
+from select import select
+
 from fastapi import APIRouter, status, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone, timedelta
 from typing import Annotated
 
+from sqlalchemy import func
+
+from app.api.routes.users.router import get_user_rating_filtered
 from app.core.enums import CancelReason, MatchStatus, MatchType
 from app.models import Match, UserAvoidedChart, User
+from app.models.users import PlayerRating
 from app.services.match import calculate_stakes, get_active_match_by_userid, create_match
+from app.services.rating import get_player_rating
 from app.services.tables import valid_table_icons
 from app.api.dependencies import CurrentUser, DbSession
 from app.job.enqueue import enqueue_match_pre_submission, enqueue_match_forfeit, enqueue_match_cleanup
 from app.core.errors import SeedPending, InvalidTables
 from app.logic.ratings import find_rating_for_filter
 
-from app.schemas.match import MatchOut, MatchWithStakesOut, StartMatchIn
+from app.schemas.match import MatchOut, MatchWithStakesOut, PlacementOut, StartMatchIn
 
 router = APIRouter(prefix="/match", tags=["match"])
 
@@ -27,9 +34,13 @@ def get_match_by_id(db: DbSession, match_id: int):
 
     pt_gain, pt_loss = calculate_stakes(db, user, match)
 
+    user_rating: PlayerRating = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)
+
+    placement = PlacementOut(played=user_rating.games_played, required=5) if user_rating.games_played <= 5 else None
+
     base = MatchOut.model_validate(match)
 
-    return MatchWithStakesOut(**base.model_dump(), potential_gain=pt_gain, potential_loss=pt_loss)
+    return MatchWithStakesOut(**base.model_dump(exclude={"placement"}), potential_gain=pt_gain, potential_loss=pt_loss, placement=placement)
 
 @router.post("/create", response_model=MatchWithStakesOut, status_code=status.HTTP_201_CREATED)
 def start_match(db: DbSession, user: CurrentUser, game: str, playtype: str, ladder: str, body: StartMatchIn, elo: Annotated[float | None, Query(ge=100, le=4200)] = None, type: MatchType = MatchType.COMPETITIVE):

@@ -14,9 +14,15 @@ type MatchResultDialogProps = {
   ratingChange?: number;
   rating_before: number;
   rating_after: number;
+  placement?: { played: number; required: number }
 };
 
-export function MatchResultsDialog({ open, win, onClose, ratingChange, rating_before, rating_after }: MatchResultDialogProps) {
+export function MatchResultsDialog({ open, win, onClose, ratingChange, rating_before, rating_after, placement }: MatchResultDialogProps) {
+
+  const inPlacements = !!placement && placement.played < placement.required
+
+  const [placementValue, setPlacementValue] = useState(0);
+  const [placementAnimate, setPlacementAnimate] = useState(false);
 
   const { tiers } = useTiers();
 
@@ -31,6 +37,23 @@ export function MatchResultsDialog({ open, win, onClose, ratingChange, rating_be
 
   const step = steps[i];
   const stepRank = useRank(step?.rating ?? null);
+
+  console.log("render", placement?.played, placementValue, placementAnimate);
+
+  useEffect(() => {
+    if (!open || !placement) return;
+
+    console.log("effect ran", open, placement?.played);
+
+    setPlacementAnimate(false);
+    setPlacementValue(((placement.played - 1) / placement.required) * 100)
+
+    const id = setTimeout(() => {
+      setPlacementAnimate(true);
+      setPlacementValue(((placement.played) / placement.required * 100));
+    }, 50)
+    return () => clearTimeout(id)
+  }, [open, placement?.played, placement?.required])
 
   useEffect(() => {
     if (!open) return
@@ -67,35 +90,57 @@ export function MatchResultsDialog({ open, win, onClose, ratingChange, rating_be
             }
           </DialogTitle>
 
-          <QueueIcon
-            rating={step.rating}
-            displayRating={true}
-            displayProgress={false}
-          />
 
-          <div className="w-3/4 mx-auto mt-5">
-            <ProgressBar
-            durationMs={Math.abs(steps[i].to - steps[i].from) * 100}
-            value={currProgress}
-            animate={animate}
-            onTransitionEnd={() => {
-              if (i < steps.length - 1) setI(i + 1);
-            }}
-            />
-            {
-              stepRank?.ranked && stepRank.progress && (
-                <div className="font-sanchez flex flex-row justify-between text-subtext mt-2 text-sm">
-                  <p>{stepRank.progress.start}</p>
-                    {stepRank.next && <p>{stepRank.next.label} &middot; {stepRank.next.at}</p>}
-                </div> 
-              )
-            }
+          {inPlacements ? (
+            <div className="w-3/4 mx-auto mt-6">
+              <p className="font-archivo tracking-[0.2em text-subtext mb-3">
+                PLACEMENTS {placement!.played} / {placement!.required}
+              </p>
+              <ProgressBar 
+              value={placementValue}
+              animate={placementAnimate}
+              durationMs={2000}
+              className="bg-highlight"
+              />
+              <p className="font-sanchez text-subtext mt-2 text-sm">
+                {placement!.required - placement!.played} more{" "}
+                {placement!.required - placement!.played === 1 ? "game" : "games"} until you're ranked
+              </p>
+            </div>
+          ) : (
+            <>
+              <QueueIcon
+                rating={step.rating}
+                displayRating={true}
+                displayProgress={false}
+              />
 
-          </div>
+              <div className="w-3/4 mx-auto mt-5">
+                <ProgressBar
+                durationMs={Math.abs(steps[i].to - steps[i].from) * 100}
+                value={currProgress}
+                animate={animate}
+                onTransitionEnd={() => {
+                  if (i < steps.length - 1) setI(i + 1);
+                }}
+                />
+                {
+                  stepRank?.ranked && stepRank.progress && (
+                    <div className="font-sanchez flex flex-row justify-between text-subtext mt-2 text-sm">
+                      <p>{stepRank.progress.start}</p>
+                        {stepRank.next && <p>{stepRank.next.label} &middot; {stepRank.next.at}</p>}
+                    </div> 
+                  )
+                }
 
-          <p className="font-archivo text-2xl mt-5">
-            <span className={`${rating_after >= rating_before ? "text=green-800" : "text-red-800"} bg-background px-4 py-2 rounded-md`}>{rating_after > rating_before ? "+" : ""}{toFixedTruncated((rating_after - rating_before), 0)}</span>
-          </p>
+              </div>
+
+              <p className="font-archivo text-2xl mt-5">
+                <span className={`${rating_after >= rating_before ? "text=green-800" : "text-red-800"} bg-background px-4 py-2 rounded-md`}>{rating_after > rating_before ? "+" : ""}{toFixedTruncated((rating_after - rating_before), 0)}</span>
+              </p>     
+            </>
+          )}
+
           <div className="flex flex-col lg:flex-row gap-1 lg:gap-20 w-5/6 mx-auto lg:w-full">
             <Button onClick={() => onClose(false)} className="font-sanchez w-full h-10  mt-6 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 duration-200 cursor-pointer rounded-sm font-semibold">Close</Button>
             <ArcButton

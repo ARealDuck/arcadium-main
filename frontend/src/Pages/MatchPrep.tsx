@@ -87,7 +87,8 @@ export default function MatchPrep() {
                 try {
                     rating = await api<UserRating>(url); 
                     setRatingStatus("done")           
-                    setRating(rating)           
+                    setRating(rating)     
+                    setSelected(rating.selected_tables)      
                 } catch (err) {
                     if (!(err instanceof ApiError && err.status === 404)) throw err
                     if ((err instanceof ApiError && err.status === 404)) setRatingStatus("none");
@@ -138,6 +139,7 @@ export default function MatchPrep() {
             }
             setRating(data)
             setRatingStatus("done")
+            setSelected(data.selected_tables)
         })
         .catch(() => setRatingStatus("none"))
     }

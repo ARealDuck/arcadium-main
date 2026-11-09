@@ -106,6 +106,7 @@ export interface Match {
     end_time: string | null;
     potential_gain: number;
     potential_loss: number;
+    placement: { played: number; required: number }
 }
 
 export interface MatchScore {
