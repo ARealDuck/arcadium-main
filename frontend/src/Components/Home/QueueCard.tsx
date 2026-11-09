@@ -3,6 +3,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useRank } from "../../hooks/useTiers";
 import type { Tier, UserRating } from "../../util/NetworkModels";
 import { toFixedTruncated, toRoman, winRate } from "../../util/helpers";
+import { returnIcon } from "../../util/rankedIconPicker";
 import ProgressBar from "../General/ProgressBar";
 
 interface QueueCardProps {
@@ -25,6 +26,8 @@ export function QueueIcon(props: QueueIconProps) {
 
     const rank = useRank(props.rating ?? 0, props.placed);
 
+    const iconName = rank?.ranked ? rank.tier.name : (props.tierName ?? "Unranked")
+
     if (!rank)
         return (
         <div>Loading...</div>
@@ -33,14 +36,14 @@ export function QueueIcon(props: QueueIconProps) {
 
     return (
     <div className="w-full flex items-center h-ful flex-col gap-4">
-        {/* <div className="h-32 flex items-end justify-center">
+        <div className="h-32 flex items-end justify-center">
             {
                 rank.ranked || props.tierName ?
-                <img className="h-28 w-auto shrink-0 object-contain [image-rendering:pixelated]" src={props.rating ? returnIcon(rank.tier.name) : returnIcon(props.tierName ?? "Unranked")}/> :
+                <img className="h-28 w-auto shrink-0 object-contain [image-rendering:pixelated]" src={props.rating ? returnIcon(iconName) : returnIcon(props.tierName ?? "Unranked")}/> :
                 <img className="h-28 w-auto shrink-0 object-contain [image-rendering:pixelated]" src={returnIcon("Unranked")}/>
             }
 
-        </div> */}
+        </div>
         <div className="font-archivo items-center font-light text-xl tracking-widest">
             {
                 props.tierName
