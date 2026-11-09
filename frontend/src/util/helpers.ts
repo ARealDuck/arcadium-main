@@ -2,6 +2,13 @@ import type { Job,  Match, UserRating } from "./NetworkModels";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+function errorMessage(body: any, fallback: string): string {
+    const detail = body?.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) return detail.map((d) => d.msg).join(", ");
+    return fallback;
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const isForm = options.body instanceof FormData;
 
@@ -11,7 +18,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   });
   if (!res.ok) {
       const body = await res.json().catch(() => null);
-      throw new ApiError(res.status, body?.detail ?? `Request failed: ${res.status}`);
+      throw new ApiError(res.status, errorMessage(body, `Request failed: ${res.status}`));
   }
   return res.status === 204 ? (undefined as T) : res.json();
 }
