@@ -47,3 +47,11 @@ def get_current_user(
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DbSession = Annotated[Session, Depends(get_db)]
+
+def require_admin(user: CurrentUser) -> User:
+    if user.id not in settings.admin_user_ids:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    return user
+
+AdminUser = Annotated[User, Depends(require_admin)]

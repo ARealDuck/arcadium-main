@@ -25,6 +25,7 @@ services:
       WATCHFILES_FORCE_POLLING: "true"
       MEDIA_DIR: /media
       INVITES_REQUIRED: ${INVITES_REQUIRED}
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS}
     ports:
       - "8000:8000"
     volumes:

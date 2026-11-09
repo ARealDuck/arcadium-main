@@ -1,9 +1,9 @@
 import secrets
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
-from app.api.dependencies import CurrentUser, DbSession
+from app.api.dependencies import AdminUser, CurrentUser, DbSession
 from app.config import settings
 from app.models.invites import Invite
 from app.models.users import User
@@ -53,3 +53,10 @@ def list_invite_codes(db: DbSession, user: CurrentUser):
 @router.get("/status")
 def invite_code_status():
     return {"invites_required": settings.invites_required}
+
+@router.post("/admin/create", response_model=list[InviteOut], status_code=201)
+def admin_create_invites(db: DbSession, admin: AdminUser, count: int = Query(1, ge=1, le=50)):
+    invites = [Invite(code=secrets.token_urlsafe(9), created_by=admin.id, is_admin_grant=True) for _ in range(count)]
+    db.add_all(invites)
+    db.commit()
+    return invites
