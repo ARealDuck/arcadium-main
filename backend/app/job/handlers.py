@@ -6,6 +6,7 @@ from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.core.errors import MatchNotFound
 from app.models import User, Match
 from app.core.enums import ClearTypes, MatchStatus, TokenPurpose
 from app.models.tokens import Token
@@ -100,10 +101,20 @@ def tachi_seed_profile(db, job):
     return {"seeded": list(seeds)}
 
 def match_end_check(db, job):
-    match = db.get(Match, job.payload.get("matchId"))
+    match: Match = db.get(Match, job.payload.get("matchId"))
     user = db.get(User, job.user_id)
 
-    best_score = get_best_score_for_match(user, match)
+    if match is None:
+        raise MatchNotFound(job.payload.get("matchId"))
+
+    if match.status != MatchStatus.ACTIVE:
+        return {"match_id": match.id, "result": match.result}
+
+    try:
+        best_score = get_best_score_for_match(user, match)
+    except TachiError:
+        match.status = MatchStatus.CANCELLED
+        return {"match_id": match.id, "result": match.result}
 
     if best_score is not None:
         won = lamp_counts_as_win(ClearTypes(best_score["scoreData"]["lamp"]), match.ladder)
