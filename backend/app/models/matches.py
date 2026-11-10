@@ -51,8 +51,12 @@ class Match(Base):
     player_mmr_after: Mapped[float | None]
     player_display_before: Mapped[float | None]
     player_display_after: Mapped[float | None]
+    player_rd_before: Mapped[float | None]
+    player_rd_after: Mapped[float | None]
     chart_rating_before: Mapped[float | None]
     chart_rating_after: Mapped[float | None]
+    chart_rd_before: Mapped[float | None]
+    chart_rd_after: Mapped[float | None]
     forfeited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True)
