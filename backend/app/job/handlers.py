@@ -94,7 +94,10 @@ def tachi_seed_profile(db, job):
 
     playtype = job.payload.get("playtype", "7k")
 
-    profile = tachi_get(f"/users/me/games/bms-{playtype}", user.tachi_api_key)
+    try:
+        profile = tachi_get(f"/users/me/games/bms-{playtype}", user.tachi_api_key)
+    except TachiError:
+        return {"seeded": []}
 
     seeds = save_seed_ratings(user, playtype, profile)
     db.commit()
