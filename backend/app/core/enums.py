@@ -9,6 +9,7 @@ class MatchStatus(StrEnum):
     RESOLVED = "resolved"
     EXPIRED = "expired"
     CANCELLED = "cancelled"
+    VOIDED = "voided"
 
 class TokenPurpose(StrEnum):
     VERIFY = "verify"
