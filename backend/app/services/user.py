@@ -22,6 +22,7 @@ def get_num_double_a(db: Session, user_id: int, playtype: str, ladder: str):
             Match.playtype == playtype,
             Match.ladder == ladder,
             Match.type == MatchType.COMPETITIVE,
+            Match.status != MatchStatus.VOIDED,
             MatchScore.grade.in_(AA_OR_BETTER)
         )
     ) or 0
@@ -49,7 +50,8 @@ def get_last_played_on_ladder(db: Session, user_id: int, game: str, playtype: st
             Match.game == game,
             Match.playtype == playtype,
             Match.ladder == ladder,
-            Match.type == MatchType.COMPETITIVE
+            Match.type == MatchType.COMPETITIVE,
+            Match.status != MatchStatus.VOIDED
         )
         .order_by(Match.start_time.desc())
     ).first()
@@ -69,7 +71,8 @@ def get_rating_series(db: Session, user_id: int, game: str, playtype: str, ladde
             Match.ladder == ladder,
             Match.type == MatchType.COMPETITIVE,
             Match.player_display_after.is_not(None),
-            Match.end_time >= since
+            Match.end_time >= since,
+            Match.status != MatchStatus.VOIDED
         )
         .distinct(day)
         .order_by(day, Match.end_time.desc())
@@ -90,7 +93,8 @@ def get_table_winrates(db: Session, user_id: int, game: str, playtype: str, ladd
             Match.playtype == playtype,
             Match.ladder == ladder,
             Match.type == MatchType.COMPETITIVE,
-            Match.result.is_not(None)
+            Match.result.is_not(None),
+            Match.status != MatchStatus.VOIDED
         )
         .group_by(ChartTableLevel.table_icon)
         .order_by(games.desc())
@@ -108,7 +112,8 @@ def get_latest_matches(db: Session, user_id: int, game: str, playtype: str, ladd
             Match.playtype == playtype,
             Match.ladder == ladder,
             Match.type == MatchType.COMPETITIVE,
-            Match.status != MatchStatus.CANCELLED
+            Match.status != MatchStatus.CANCELLED,
+            Match.status != MatchStatus.VOIDED
         )
         .order_by(Match.end_time.desc())
         .limit(limit)
@@ -129,7 +134,8 @@ def get_activity(db: Session, user_id: int, game: str, playtype: str, ladder: st
             Match.ladder == ladder,
             Match.status != MatchStatus.CANCELLED,
             Match.type == MatchType.COMPETITIVE,
-            Match.start_time >= since
+            Match.start_time >= since,
+            Match.status != MatchStatus.VOIDED
         )
         .group_by(day)
         .order_by(day)
@@ -148,7 +154,8 @@ def get_lamps(db: Session, user_id: int, game: str, playtype: str, ladder: str) 
             Match.ladder == ladder,
             Match.type == MatchType.COMPETITIVE,
             Match.status != MatchStatus.CANCELLED,
-            MatchScore.lamp != "FAILED"
+            MatchScore.lamp != "FAILED",
+            Match.status != MatchStatus.VOIDED
         )
         .group_by(MatchScore.lamp)
     ).all()

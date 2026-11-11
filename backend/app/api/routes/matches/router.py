@@ -1,22 +1,20 @@
-from select import select
-
 from fastapi import APIRouter, status, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone, timedelta
 from typing import Annotated
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from app.api.routes.users.router import get_user_rating_filtered
-from app.core.enums import CancelReason, MatchStatus, MatchType
+from app.core.enums import CancelReason, MatchResult, MatchStatus, MatchType
 from app.models import Match, UserAvoidedChart, User
 from app.models.users import PlayerRating
-from app.services.match import calculate_stakes, get_active_match_by_userid, create_match
-from app.services.rating import get_player_rating
+from app.services.match import calculate_stakes, get_active_match_by_userid, create_match, rollback_match
+from app.services.rating import get_chart_rating, get_player_rating
 from app.services.tables import valid_table_icons
-from app.api.dependencies import CurrentUser, DbSession
+from app.api.dependencies import AdminUser, CurrentUser, DbSession
 from app.job.enqueue import enqueue_match_pre_submission, enqueue_match_forfeit, enqueue_match_cleanup
-from app.core.errors import SeedPending, InvalidTables
+from app.core.errors import MatchNotFound, RollbackError, SeedPending, InvalidTables
 from app.logic.ratings import find_rating_for_filter
 
 from app.schemas.match import MatchOut, MatchWithStakesOut, PlacementOut, StartMatchIn
@@ -141,6 +139,42 @@ def cleanup_active_matches(db: DbSession, user: CurrentUser):
     db.commit()
 
     return {"message": "Submitted cleanup"}
+
+@router.put("/rollback/{match_id}")
+def rollback_match_route(db: DbSession, admin: AdminUser, match_id: int):
+    try:
+        rollback_match(db, match_id)
+    except MatchNotFound:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match not found or not rollbackable.")
+    except RollbackError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Rollback failed: {type(e).__name__}")
+
+    db.commit()
+    return {"rolled_back": match_id}
+
+@router.put("/rollback-batch")
+def rollback_batch(db: DbSession, admin: AdminUser, start: datetime, end: datetime):
+    match_ids = db.scalars(
+        select(Match.id)
+        .where(
+            Match.type == MatchType.COMPETITIVE,
+            Match.status.in_([MatchStatus.RESOLVED, MatchStatus.EXPIRED]),
+            Match.end_time.between(start, end)
+        ).order_by(Match.end_time.desc())
+    ).all()
+
+    rolled_back, skipped = [], []
+
+    for match_id in match_ids:
+        try:
+            rollback_match(db, match_id)
+            rolled_back.append(match_id)
+        except RollbackError:
+            skipped.append(match_id)
+
+    db.commit()
+    return {"rolled_back": rolled_back, "skipped": skipped}
+
 
 @router.get("/{user_id}/table", response_class=HTMLResponse)
 def serve_user_table_index(db: DbSession, user_id: int):

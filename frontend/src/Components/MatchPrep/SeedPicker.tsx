@@ -33,15 +33,20 @@ export default function SeedPicker({ seedPlayer } : { seedPlayer: (body? : { sou
                         {option.key} ~☆{option.level}
                     </ArcButton>
                 ))}
-
-                <p className="text-center">or</p>
+                {seedOptions.tachi != null ?
+                <>
+                  <p className="text-center">or</p>
 
                     <ArcButton
                     className="bg-zinc-800 border border-zinc-500/50 capitalize rounded-lg"
                     onClick={() => seedPlayer()}
                     >
                         Bokutachi ~{tachiLevel.icon}{tachiLevel.number}
-                    </ArcButton>
+                    </ArcButton>            
+                </> : <></>
+
+                }
+
             </div>
 
         </div>

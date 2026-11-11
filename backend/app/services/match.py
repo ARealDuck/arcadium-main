@@ -1,11 +1,12 @@
 from datetime import datetime, timezone, timedelta
+from fastapi import HTTPException, status
 from sqlalchemy import select, func, update as sqlUpdate
 from sqlalchemy.orm import Session
 from collections.abc import Sequence
 
 from app.services.tachi import score_from_tachi, score_time, get_recent_scores
 from app.core.enums import MatchType, MatchStatus, MatchResult, ClearTypes
-from app.core.errors import SeedPending, ChartNotFoundForRating, MatchNotFound
+from app.core.errors import GenericRatingNotFound, MatchNotRollbackable, PlayerNotFound, SeedPending, ChartNotFoundForRating, MatchNotFound
 from app.models import User, Chart, ChartRating, Match, PlayerRating, ChartTableLevel
 from app.services.rating import get_player_rating, seed_player_rating, get_chart_rating
 from app.services.streaks import effective_rd
@@ -69,7 +70,9 @@ def create_match(
         playtype=playtype,
         player_mmr_before=rating.display_rating,
         player_display_before=rating.display_rating,
+        player_rd_before=rating.rd,
         chart_rating_before=chart_rating.rating,
+        chart_rd_before=chart_rating.rd,
         start_time=now,
         cutoff_time=now + MATCH_DURATION,
         player_placed_before=rating.placed
@@ -174,7 +177,9 @@ def apply_rating_update(db: Session, match: Match, won: bool):
         player.placed = True
 
     match.player_display_after = player.display_rating
+    match.player_rd_after = player.rd
     match.chart_rating_after = chart.rating
+    match.chart_rd_after = chart.rd
 
 def get_active_match_by_userid(db: Session, user_id: int):
     active_match = db.scalar(
@@ -282,3 +287,62 @@ def cancel_stale_matches(db) -> int:
     )
 
     return result.rowcount
+
+def rollback_match(db: Session, match_id: int):
+    match = db.scalar(
+        select(Match)
+        .where(
+            Match.id == match_id,
+            Match.type == MatchType.COMPETITIVE,
+            Match.status.in_([MatchStatus.RESOLVED, MatchStatus.EXPIRED])
+        )
+    )
+
+    if match is None:
+        raise MatchNotFound(match_id)
+
+    user = db.get(User, match.user_id)
+
+    if user is None:
+        raise PlayerNotFound(match.user_id)
+
+    if match.player_display_after is None or match.chart_rating_after is None:
+        raise MatchNotRollbackable(match_id)
+
+    adjustment = match.player_display_after - match.player_display_before
+    chart_adjustment = match.chart_rating_after - match.chart_rating_before
+    player_rd_adjustment = 0
+    chart_rd_adjustment = 0
+
+    if match.player_rd_after is not None:
+        player_rd_adjustment = match.player_rd_after - match.player_rd_before
+
+    if match.chart_rd_after is not None:
+        chart_rd_adjustment = match.chart_rd_after - match.chart_rd_before
+
+    user_rating = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)
+    chart_rating = get_chart_rating(db, match.chart_id, match.ladder)
+
+    if user_rating is None or chart_rating is None:
+        raise GenericRatingNotFound()
+
+    if match.player_placed_before == False:
+        user_rating.placed = False
+
+    player_new_rating = user_rating.display_rating - adjustment
+    player_new_rd = user_rating.rd - player_rd_adjustment
+    chart_new_rating = chart_rating.rating - chart_adjustment
+    chart_new_rd = chart_rating.rd - chart_rd_adjustment
+
+    user_rating.display_rating = player_new_rating
+    user_rating.rating = player_new_rating
+    user_rating.games_played -= 1
+    user_rating.rd = player_new_rd
+
+    chart_rating.rating = chart_new_rating
+    chart_rating.rd = chart_new_rd
+
+    if match.result == MatchResult.WIN:
+        user_rating.wins -= 1
+
+    match.status = MatchStatus.VOIDED
