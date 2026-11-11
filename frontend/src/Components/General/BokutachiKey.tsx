@@ -1,14 +1,19 @@
 import { Button, Field, Fieldset, Input, Label } from "@headlessui/react"
 import { useState } from "react"
-import { api, waitForJob } from "../../util/helpers";
+import { api, cn, waitForJob } from "../../util/helpers";
 import type { Job } from "../../util/NetworkModels";
+import ForegroundCard from "./ForegroundCard";
+import LoadingSpinner from "./LoadingSpinner";
+import { MessageCircleDashedCheck } from "lucide-react";
 
-export default function BokutachiKey() {
+export default function BokutachiKey({ className }: { className?: string }) {
     const [tachiKey, setTachiKey] = useState<string>("")
     const [tachiProfile, setTachiProfile] = useState<any>()
     const [storedTachiKey, setStoredTachiKey] = useState<string>("");
     const [tachiError, setTachiError] = useState<boolean>(false);
     const [loadTachiKey, setLoadTachiKey] = useState<boolean>(false);
+    const [loadConfirmKey, setLoadConfirmKey] = useState<boolean>(false)
+    const [confirmTachiError, setConfirmTachiError] = useState<boolean>(false);
 
     const submitTachiKey = async () => {
         if (tachiKey.trim() == "" || loadTachiKey)
@@ -40,9 +45,9 @@ export default function BokutachiKey() {
     const displayTachiKeyInsert = () => {
 
         return (
-            <Fieldset className="lg:w-1/2 w-full flex flex-row items-end gap-3 mx-auto mt-20">
+            <Fieldset className="w-full flex flex-row items-end gap-3 mx-auto mt-20">
                 <Field className="flex-1">
-                    <Label className="block font-bold text-zinc-200">Tachi API Key</Label>
+                    <Label className="block font-bold text-zinc-200">Bokutachi API Key</Label>
                     <Input 
                     onChange={(e) => setTachiKey(e.currentTarget.value)}
                     className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200" 
@@ -55,9 +60,62 @@ export default function BokutachiKey() {
 
     }
 
-    return (
-        <div>
+    const confirmTachiKey = async () => {
+        if (storedTachiKey.trim() == "" || loadConfirmKey)
+            return;
 
+        setConfirmTachiError(false)
+
+        try {
+            const confirmJob = await api<Job>(`/auth/me/confirm_tachi_key?tachi_key=${storedTachiKey}`, { method: "PUT" })
+
+            setLoadConfirmKey(true)
+
+            await waitForJob(confirmJob.id)
+
+            setLoadConfirmKey(false)
+
+            return true
+        } catch (err) {
+            setConfirmTachiError(true)
+            return false
+        }
+    }
+
+    return (
+        <div className={className}>
+            {displayTachiKeyInsert()}
+            <ForegroundCard className="mt-10 mx-auto">
+                <p className="font-sanchez font-bold text-xl tracking-widest">Bokutachi Profile</p>
+                {
+                    tachiError == false && confirmTachiError == false ?
+                        !tachiProfile ?
+                            !loadTachiKey ?
+                            <p className="font-sanchez text-subtext mt-3">No profile loaded...</p> :
+                            <div className="flex items-center justify-start mt-3">
+                                <LoadingSpinner className="mr-2"/>
+                                <p className="font-sanchez text-subtext">Loading Profile...</p>
+                            </div> : 
+                        <p className="font-sanchez mt-3 font-bold text-lg"><span className="text-subtext">{tachiProfile.username}</span></p> :
+                    confirmTachiError == true ?
+                    <p className="font-sanchez text-red-500 mt-3">There was an error confirming your Tachi key.</p> :
+                    <p className="font-sanchez text-red-500 mt-3">That API key is not linked to any users.</p>
+                    
+                }
+                <div className="flex justify-end">
+                    <Button
+                    disabled={!tachiProfile || loadConfirmKey}
+                    onClick={confirmTachiKey}
+                    className="relative font-sanchez flex items-center gap-2 bg-highlight brightness-80 enabled:hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-bold mt-3
+                                data-disabled:bg-zinc-700 data-disabled:text-zinc-400 data-disabled:cursor-not-allowed"
+                    >
+                    <span className={loadConfirmKey ? "invisible" : ""}>Confirm Link</span>
+                    {loadConfirmKey && <LoadingSpinner className="absolute inset-0"/>}
+                    </Button>
+                </div>
+                
+                
+            </ForegroundCard>
         </div>
     )
 }

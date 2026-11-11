@@ -24,8 +24,6 @@ export default function OnboardingPage() {
     const navigate = useNavigate();
 
     const [phase, setPhase] = useState<number>(0);
-    const [loadConfirmKey, setLoadConfirmKey] = useState<boolean>(false)
-    const [confirmTachiError, setConfirmTachiError] = useState<boolean>(false);
 
     useEffect(() => {
         if (!user)
@@ -34,27 +32,6 @@ export default function OnboardingPage() {
         if (user.has_tachi_key)
             setPhase(1);
     }, [])
-
-    const confirmTachiKey = async () => {
-        if (storedTachiKey.trim() == "" || loadConfirmKey)
-            return;
-
-        setConfirmTachiError(false)
-
-        try {
-            const confirmJob = await api<Job>(`/auth/me/confirm_tachi_key?tachi_key=${storedTachiKey}`, { method: "PUT" })
-
-            setLoadConfirmKey(true)
-
-            await waitForJob(confirmJob.id)
-
-            setLoadConfirmKey(false)
-
-            setPhase(phase+1);
-        } catch (err) {
-            setConfirmTachiError(true)
-        }
-    }
 
     const finishOnboarding = async () => {
         try {
@@ -72,40 +49,7 @@ export default function OnboardingPage() {
         if (phase === 0) {
             return (
                 <div>
-                    {displayTachiKeyInsert()}
 
-                    <ForegroundCard className="mt-10 lg:w-1/2 mx-auto">
-                        <p className="font-sanchez font-bold text-xl tracking-widest">Tachi Profile</p>
-
-                        {
-                            tachiError == false && confirmTachiError == false ?
-                                !tachiProfile ?
-                                    !loadTachiKey ?
-                                    <p className="font-sanchez text-subtext mt-3">No profile loaded...</p> :
-                                    <div className="flex items-center justify-start mt-3">
-                                        <LoadingSpinner className="mr-2"/>
-                                        <p className="font-sanchez text-subtext">Loading Profile...</p>
-                                    </div> : 
-                                <p className="font-sanchez mt-3 font-bold text-lg"><span className="text-subtext">{tachiProfile.username}</span></p> :
-                            confirmTachiError == true ?
-                            <p className="font-sanchez text-red-500 mt-3">There was an error confirming your Tachi key.</p> :
-                            <p className="font-sanchez text-red-500 mt-3">That API key is not linked to any users.</p>
-                            
-                        }
-                        <div className="flex justify-end">
-                            <Button
-                            disabled={!tachiProfile || loadConfirmKey}
-                            onClick={confirmTachiKey}
-                            className="relative font-sanchez flex items-center gap-2 bg-highlight brightness-80 enabled:hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-bold mt-3
-                                        data-disabled:bg-zinc-700 data-disabled:text-zinc-400 data-disabled:cursor-not-allowed"
-                            >
-                            <span className={loadConfirmKey ? "invisible" : ""}>Confirm Link</span>
-                            {loadConfirmKey && <LoadingSpinner className="absolute inset-0"/>}
-                            </Button>
-                        </div>
-                        
-                        
-                    </ForegroundCard>
                     
                     <div className="mt-5 lg:w-1/2 mx-auto">
 

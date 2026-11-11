@@ -5,6 +5,7 @@ import type { Invite, Invites, User } from "../util/NetworkModels";
 import { Button } from "@headlessui/react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 import InviteList from "../Components/Settings/InviteList";
+import BokutachiKey from "../Components/General/BokutachiKey";
 
 export default function SettingsPage() {
 
@@ -81,8 +82,10 @@ export default function SettingsPage() {
                 </Button>
             </ForegroundCard>
 
-            <ForegroundCard className="mt-5">
+            <ForegroundCard className="mt-5 bg-transparent">
                 <p className="font-sanchez text-lg">Integrations</p>
+
+                <BokutachiKey className="w-full lg:w-5/6 mx-auto" />
             </ForegroundCard>
 
             <ForegroundCard className="mt-5">
