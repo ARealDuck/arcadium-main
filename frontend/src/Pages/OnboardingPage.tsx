@@ -1,5 +1,5 @@
-import { Button, Disclosure, DisclosureButton, DisclosurePanel, Field, Fieldset, Input, Label } from "@headlessui/react";
-import { ChevronDown, MessageCircleDashedCheck } from "lucide-react";
+import { Button, Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 
@@ -7,10 +7,10 @@ import { useNavigate } from "react-router";
 import CreateNewAPIKey from "../assets/onboarding_assets/tachi_create_key.png";
 import CreateAPIKey from "../assets/onboarding_assets/tachi_create_key_2.png";
 import MyIntegrations from "../assets/onboarding_assets/tachi_my_integrations.png";
-import LoadingSpinner from "../Components/General/LoadingSpinner";
+import BokutachiKey from "../Components/General/BokutachiKey";
 import { useAuth } from "../hooks/useAuth";
-import { api, waitForJob } from "../util/helpers";
-import type { Job, User } from "../util/NetworkModels";
+import { api } from "../util/helpers";
+import type { User } from "../util/NetworkModels";
 
 export default function OnboardingPage() {
 
@@ -24,13 +24,6 @@ export default function OnboardingPage() {
     const navigate = useNavigate();
 
     const [phase, setPhase] = useState<number>(0);
-    const [tachiKey, setTachiKey] = useState<string>("")
-    const [loadTachiKey, setLoadTachiKey] = useState<boolean>(false);
-    const [loadConfirmKey, setLoadConfirmKey] = useState<boolean>(false)
-    const [tachiError, setTachiError] = useState<boolean>(false);
-    const [confirmTachiError, setConfirmTachiError] = useState<boolean>(false);
-    const [tachiProfile, setTachiProfile] = useState<any>()
-    const [storedTachiKey, setStoredTachiKey] = useState<string>("");
 
     useEffect(() => {
         if (!user)
@@ -39,54 +32,6 @@ export default function OnboardingPage() {
         if (user.has_tachi_key)
             setPhase(1);
     }, [])
-
-    const submitTachiKey = async () => {
-        if (tachiKey.trim() == "" || loadTachiKey)
-            return;
-
-        setTachiProfile(undefined)
-        setTachiError(false)
-        setStoredTachiKey(tachiKey)
-
-        try {
-            const submitJob = await api<Job>(`/auth/me/tachi_key?tachi_key=${tachiKey}`, { method: "POST" })
-        
-            setLoadTachiKey(true);
-
-            let job = await waitForJob(submitJob.id);
-
-            setTachiError(false);
-            setTachiProfile(job.result)
-            setLoadTachiKey(false);
-        }
-
-        catch (err) {
-            setTachiError(true);
-            setLoadTachiKey(false)
-        }
-
-    }
-
-    const confirmTachiKey = async () => {
-        if (storedTachiKey.trim() == "" || loadConfirmKey)
-            return;
-
-        setConfirmTachiError(false)
-
-        try {
-            const confirmJob = await api<Job>(`/auth/me/confirm_tachi_key?tachi_key=${storedTachiKey}`, { method: "PUT" })
-
-            setLoadConfirmKey(true)
-
-            await waitForJob(confirmJob.id)
-
-            setLoadConfirmKey(false)
-
-            setPhase(phase+1);
-        } catch (err) {
-            setConfirmTachiError(true)
-        }
-    }
 
     const finishOnboarding = async () => {
         try {
@@ -100,62 +45,12 @@ export default function OnboardingPage() {
         }
     }
 
-    const displayTachiKeyInsert = () => {
-
-        return (
-            <Fieldset className="lg:w-1/2 w-full flex flex-row items-end gap-3 mx-auto mt-20">
-                <Field className="flex-1">
-                    <Label className="block font-bold text-zinc-200">Tachi API Key</Label>
-                    <Input 
-                    onChange={(e) => setTachiKey(e.currentTarget.value)}
-                    className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200" 
-                    name="tachi_key"/>
-                </Field>
-
-                <Button onClick={submitTachiKey} className="h-10 font-sanchez inline-flex items-center gap-2 bg-highlight brightness-80 hover:brightness-100 duration-200 cursor-pointer p-3 rounded-md font-semibold"><MessageCircleDashedCheck className="size-4"/></Button>
-            </Fieldset>
-        )
-
-    }
-
     const displayPhases = () => {
         if (phase === 0) {
             return (
                 <div>
-                    {displayTachiKeyInsert()}
 
-                    <ForegroundCard className="mt-10 lg:w-1/2 mx-auto">
-                        <p className="font-sanchez font-bold text-xl tracking-widest">Tachi Profile</p>
-
-                        {
-                            tachiError == false && confirmTachiError == false ?
-                                !tachiProfile ?
-                                    !loadTachiKey ?
-                                    <p className="font-sanchez text-subtext mt-3">No profile loaded...</p> :
-                                    <div className="flex items-center justify-start mt-3">
-                                        <LoadingSpinner className="mr-2"/>
-                                        <p className="font-sanchez text-subtext">Loading Profile...</p>
-                                    </div> : 
-                                <p className="font-sanchez mt-3 font-bold text-lg"><span className="text-subtext">{tachiProfile.username}</span></p> :
-                            confirmTachiError == true ?
-                            <p className="font-sanchez text-red-500 mt-3">There was an error confirming your Tachi key.</p> :
-                            <p className="font-sanchez text-red-500 mt-3">That API key is not linked to any users.</p>
-                            
-                        }
-                        <div className="flex justify-end">
-                            <Button
-                            disabled={!tachiProfile || loadConfirmKey}
-                            onClick={confirmTachiKey}
-                            className="relative font-sanchez flex items-center gap-2 bg-highlight brightness-80 enabled:hover:brightness-100 duration-200 cursor-pointer p-3 rounded-sm font-bold mt-3
-                                        data-disabled:bg-zinc-700 data-disabled:text-zinc-400 data-disabled:cursor-not-allowed"
-                            >
-                            <span className={loadConfirmKey ? "invisible" : ""}>Confirm Link</span>
-                            {loadConfirmKey && <LoadingSpinner className="absolute inset-0"/>}
-                            </Button>
-                        </div>
-                        
-                        
-                    </ForegroundCard>
+                    <BokutachiKey onConfirmed={() => setPhase(phase+1)} className="lg:w-1/2 mx-auto" />
                     
                     <div className="mt-5 lg:w-1/2 mx-auto">
 

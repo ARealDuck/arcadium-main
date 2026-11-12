@@ -62,3 +62,6 @@ class SeedOptionOut(BaseModel):
 class SeedOptionsOut(BaseModel):
     presets: list[SeedOptionOut]
     tachi: SeedOptionOut | None = None
+
+class SettingsOut(BaseModel):
+    bokutachi_key_hint: str | None = None
