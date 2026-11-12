@@ -27,6 +27,7 @@ services:
       MEDIA_DIR: /media
       INVITES_REQUIRED: ${INVITES_REQUIRED}
       ADMIN_USER_IDS: ${ADMIN_USER_IDS}
+      COOKIE_SECURE: ${COOKIE_SECURE}
     volumes:
       - media:/media
     depends_on:
