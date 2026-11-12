@@ -1,5 +1,5 @@
-import { Button, Disclosure, DisclosureButton, DisclosurePanel, Field, Fieldset, Input, Label } from "@headlessui/react";
-import { ChevronDown, MessageCircleDashedCheck } from "lucide-react";
+import { Button, Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 
@@ -7,10 +7,10 @@ import { useNavigate } from "react-router";
 import CreateNewAPIKey from "../assets/onboarding_assets/tachi_create_key.png";
 import CreateAPIKey from "../assets/onboarding_assets/tachi_create_key_2.png";
 import MyIntegrations from "../assets/onboarding_assets/tachi_my_integrations.png";
-import LoadingSpinner from "../Components/General/LoadingSpinner";
+import BokutachiKey from "../Components/General/BokutachiKey";
 import { useAuth } from "../hooks/useAuth";
-import { api, waitForJob } from "../util/helpers";
-import type { Job, User } from "../util/NetworkModels";
+import { api } from "../util/helpers";
+import type { User } from "../util/NetworkModels";
 
 export default function OnboardingPage() {
 
@@ -50,6 +50,7 @@ export default function OnboardingPage() {
             return (
                 <div>
 
+                    <BokutachiKey onConfirmed={() => setPhase(phase+1)} className="lg:w-1/2 mx-auto" />
                     
                     <div className="mt-5 lg:w-1/2 mx-auto">
 

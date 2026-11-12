@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../util/helpers";
-import type { Invite, Invites, User } from "../util/NetworkModels";
+import type { ProfileSettings, Invite, Invites, User } from "../util/NetworkModels";
 import { Button } from "@headlessui/react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 import InviteList from "../Components/Settings/InviteList";
@@ -15,6 +15,7 @@ export default function SettingsPage() {
     const [preview, setPreview] = useState<string | null>(null);
     const [dragging, setDragging] = useState(false);
     const [invites, setInvites] = useState<Invites>();
+    const [settings, setSettings] = useState<ProfileSettings>();
 
     function pick(f: File | undefined) {
         if (!f || !f.type.startsWith("image/")) return;
@@ -48,11 +49,18 @@ export default function SettingsPage() {
     }
 
     useEffect(() => {
-        api<Invites>("/invite/list")
-        .then(inviteList => {
+
+        Promise.all([
+            api<Invites>("/invite/list"),
+            api<ProfileSettings>("/users/me/settings")
+        ])
+        .then(([inviteList, settings]) => {
             setInvites(inviteList)
+            setSettings(settings)
         })
     }, [])
+
+    console.log(settings)
 
     return (
         <div className="flex flex-col w-7/8 lg:w-1/2 mx-auto">
@@ -85,7 +93,7 @@ export default function SettingsPage() {
             <ForegroundCard className="mt-5 bg-transparent">
                 <p className="font-sanchez text-lg">Integrations</p>
 
-                <BokutachiKey className="w-full lg:w-5/6 mx-auto" />
+                <BokutachiKey tachi_key={settings?.bokutachi_key_hint} className="w-full lg:w-5/6 mx-auto" />
             </ForegroundCard>
 
             <ForegroundCard className="mt-5">

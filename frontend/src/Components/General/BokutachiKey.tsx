@@ -1,13 +1,15 @@
 import { Button, Field, Fieldset, Input, Label } from "@headlessui/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { api, cn, waitForJob } from "../../util/helpers";
 import type { Job } from "../../util/NetworkModels";
 import ForegroundCard from "./ForegroundCard";
 import LoadingSpinner from "./LoadingSpinner";
 import { MessageCircleDashedCheck } from "lucide-react";
 
-export default function BokutachiKey({ className }: { className?: string }) {
-    const [tachiKey, setTachiKey] = useState<string>("")
+
+
+export default function BokutachiKey({ className, tachi_key, onConfirmed }: { className?: string, tachi_key?: string, onConfirmed?: () => void; }) {
+    const [tachiKey, setTachiKey] = useState<string>(tachi_key ?? "")
     const [tachiProfile, setTachiProfile] = useState<any>()
     const [storedTachiKey, setStoredTachiKey] = useState<string>("");
     const [tachiError, setTachiError] = useState<boolean>(false);
@@ -42,6 +44,10 @@ export default function BokutachiKey({ className }: { className?: string }) {
 
     }
 
+    useEffect(() => {
+        setTachiKey(tachi_key ?? "");
+    }, [tachi_key]);
+
     const displayTachiKeyInsert = () => {
 
         return (
@@ -49,6 +55,7 @@ export default function BokutachiKey({ className }: { className?: string }) {
                 <Field className="flex-1">
                     <Label className="block font-bold text-zinc-200">Bokutachi API Key</Label>
                     <Input 
+                    value={tachiKey}
                     onChange={(e) => setTachiKey(e.currentTarget.value)}
                     className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200" 
                     name="tachi_key"/>
@@ -67,18 +74,19 @@ export default function BokutachiKey({ className }: { className?: string }) {
         setConfirmTachiError(false)
 
         try {
-            const confirmJob = await api<Job>(`/auth/me/confirm_tachi_key?tachi_key=${storedTachiKey}`, { method: "PUT" })
+            const confirmJob = await api<Job | null>(`/auth/me/confirm_tachi_key?tachi_key=${storedTachiKey}`, { method: "PUT" })
 
             setLoadConfirmKey(true)
 
-            await waitForJob(confirmJob.id)
+            if (confirmJob)
+                await waitForJob(confirmJob.id)
 
             setLoadConfirmKey(false)
 
-            return true
+            onConfirmed?.()
         } catch (err) {
+            console.error(err)
             setConfirmTachiError(true)
-            return false
         }
     }
 
@@ -92,8 +100,8 @@ export default function BokutachiKey({ className }: { className?: string }) {
                         !tachiProfile ?
                             !loadTachiKey ?
                             <p className="font-sanchez text-subtext mt-3">No profile loaded...</p> :
-                            <div className="flex items-center justify-start mt-3">
-                                <LoadingSpinner className="mr-2"/>
+                            <div className="flex items-center justify-start self-start mt-3">
+                                <LoadingSpinner className="m-0 mr-2"/>
                                 <p className="font-sanchez text-subtext">Loading Profile...</p>
                             </div> : 
                         <p className="font-sanchez mt-3 font-bold text-lg"><span className="text-subtext">{tachiProfile.username}</span></p> :

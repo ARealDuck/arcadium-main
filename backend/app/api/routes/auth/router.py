@@ -103,7 +103,6 @@ def login(body: LoginIn, response: Response, db: Session = Depends(get_db)):
         has_tachi_api_key = True
 
     user_out = UserOut(id=user.id, display_name=user.display_name, username=user.username, avatar_url=user.avatar_url, has_tachi_key=has_tachi_api_key, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
-        
 
     return user_out
 
@@ -139,14 +138,25 @@ def tachi_key(tachi_key: str, user: User = Depends(get_current_user), db: Sessio
 
     return job
 
-@router.put("/me/confirm_tachi_key", response_model=JobOut, status_code=200)
+
+
+@router.put("/me/confirm_tachi_key", response_model=JobOut | None, status_code=200)
 def confirm_tachi_key(tachi_key: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if (tachi_key == None or tachi_key.strip() == ""):
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Tachi key must not be empty!")
 
+    job = None
+    skip_seeding = False
+
+    # We might need to move seeding to a different function, or change how we do it for use with multiple games
+    # If first seed job fails, they won't have any seeds to use. This is fine, since we have presets. but just a thought.
+    if user.tachi_api_key:
+        skip_seeding = True
+
     user.tachi_api_key = tachi_key
 
-    job = enqueue_tachi_seed(db, user.id)
+    if not skip_seeding:
+        job = enqueue_tachi_seed(db, user.id)
 
     db.commit()
 

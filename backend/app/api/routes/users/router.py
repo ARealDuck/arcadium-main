@@ -27,7 +27,7 @@ from app.job.enqueue import enqueue_tachi_seed
 
 from app.schemas.match import MatchOut
 from app.schemas.auth import UserRatingOut
-from app.schemas.user import SeedOptionOut, SeedOptionsOut, SetupIn, UserProfileInfoOut, ProfileGenericOut, BMSProfileOut, LadderStatsOut
+from app.schemas.user import SeedOptionOut, SeedOptionsOut, SettingsOut, SetupIn, UserProfileInfoOut, ProfileGenericOut, BMSProfileOut, LadderStatsOut
 
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -185,3 +185,8 @@ def get_profile_info(db: DbSession, id: int, game: str, playtype: str, ladder: s
         last_played=last_played,
         bms=BMSProfileOut(num_aa=num_aa, table_winrate=table_winrate)
     )
+
+@router.get("/me/settings", response_model=SettingsOut)
+def get_user_profile_settings(db: DbSession, user: CurrentUser):
+    key = user.tachi_api_key
+    return SettingsOut(bokutachi_key_hint=f"••••••{key[-4:]}" if key else None)
