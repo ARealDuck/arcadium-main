@@ -5,7 +5,7 @@ from app.core.db import get_db
 from app.core.security import hash_token
 from app.models import User, UserSession
 from app.services.auth import create_session
-from fastapi import Cookie, Depends, HTTPException, Response, status
+from fastapi import Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -23,28 +23,32 @@ def set_session_cookie(db: Session, user: User, response: Response) -> None:
         secure=settings.cookie_secure
     )
 
-def get_current_user(
-        db: DbSession,
-        session_token: str | None = Cookie(default=None, alias=COOKIE_NAME)
-) -> User:
-    if not session_token:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not logged in!")
+def get_current_session(request: Request, db: DbSession) -> UserSession:
+    token = request.cookies.get(COOKIE_NAME)
 
-    user = db.scalar(
-        select(User)
-        .join(UserSession)
+    if not token:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+
+    session = db.scalar(
+        select(UserSession)
+        .join(User, User.id == UserSession.user_id)
         .where(
-            UserSession.token_hash == hash_token(session_token),
+            UserSession.token_hash == hash_token(token),
             UserSession.expires_at > func.now(),
-            User.is_active.is_(True),
+            User.is_active.is_(True)
         )
-        .options(selectinload(User.ratings))
     )
 
-    if user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired or invalid")
+    if session is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    return session
 
-    return user
+CurrentSession = Annotated[UserSession, Depends(get_current_session)]
+
+def get_current_user(
+    session: CurrentSession
+) -> User:
+    return session.user
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 

@@ -17,7 +17,7 @@ from app.job.enqueue import (
 from app.models import User, UserSession
 from app.models.invites import Invite
 from app.models.tokens import Token
-from app.schemas.auth import EmailIn, LoginIn, RegisterIn, UserOut
+from app.schemas.auth import EmailIn, LoginIn, PasswordIn, RegisterIn, UserOut
 from app.schemas.job import JobOut
 from fastapi import APIRouter, Cookie, HTTPException, Response, UploadFile, status
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -30,8 +30,6 @@ Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(body: RegisterIn, response: Response, db: DbSession):
     invite = None
-
-    print(settings.invites_required)
 
     if settings.invites_required or body.invite_code:
         if not body.invite_code:
@@ -265,4 +263,17 @@ def change_email(db: DbSession, body: EmailIn, user: CurrentUser):
 
     return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
 
+@router.put("/me/password", status_code=200)
+def change_password(db: DbSession, body: PasswordIn, user: CurrentUser):
+
+    valid, hash = verify_password(body.old_password, user.password_hash)
+
+    if not valid:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your password is incorrect.")
+
+    user.password_hash = hash_password(body.new_password)
+
+    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+
+    
     

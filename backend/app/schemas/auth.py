@@ -76,3 +76,7 @@ class UserOut(BaseModel):
 
 class EmailIn(BaseModel):
     email: EmailStr
+
+class PasswordIn(BaseModel):
+    old_password: str
+    new_password: str
