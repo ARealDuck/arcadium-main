@@ -1,8 +1,9 @@
 from functools import lru_cache
+
+from app.core.db import SessionLocal
+from app.models import ChartTableLevel
 from sqlalchemy import select
 
-from app.models import ChartTableLevel
-from app.core.db import SessionLocal
 
 @lru_cache(maxsize=1)
 def valid_table_icons() -> frozenset[str]:

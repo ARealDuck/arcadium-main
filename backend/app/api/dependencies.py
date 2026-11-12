@@ -1,15 +1,16 @@
-from fastapi import Cookie, Depends, HTTPException, status, Response
 from typing import Annotated
+
+from app.config import settings
+from app.core.db import get_db
+from app.core.security import hash_token
+from app.models import User, UserSession
+from app.services.auth import create_session
+from fastapi import Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.security import hash_token
-from app.core.db import get_db
-from app.models import User, UserSession
-from app.config import settings
-from app.services.auth import create_session
-
 COOKIE_NAME = "session"
+DbSession = Annotated[Session, Depends(get_db)]
 
 def set_session_cookie(db: Session, user: User, response: Response) -> None:
     token = create_session(db, user)
@@ -23,8 +24,8 @@ def set_session_cookie(db: Session, user: User, response: Response) -> None:
     )
 
 def get_current_user(
-        session_token: str | None = Cookie(default=None, alias=COOKIE_NAME),
-        db: Session = Depends(get_db),
+        db: DbSession,
+        session_token: str | None = Cookie(default=None, alias=COOKIE_NAME)
 ) -> User:
     if not session_token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not logged in!")
@@ -46,7 +47,6 @@ def get_current_user(
     return user
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
-DbSession = Annotated[Session, Depends(get_db)]
 
 def require_admin(user: CurrentUser) -> User:
     if user.id not in settings.admin_user_ids:

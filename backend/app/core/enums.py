@@ -1,5 +1,6 @@
 from enum import StrEnum
 
+
 class MatchResult(StrEnum):
     WIN = "win"
     LOSS = "loss"

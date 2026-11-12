@@ -1,9 +1,8 @@
 from datetime import datetime
 
+from app.models.base import Base
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.models.base import Base
 
 
 class Invite(Base):

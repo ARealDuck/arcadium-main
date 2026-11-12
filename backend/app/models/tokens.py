@@ -1,10 +1,13 @@
 from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, String, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
 
 from app.core.enums import TokenPurpose
 from app.models.base import Base, enum_check, str_enum
+from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.models.users import User
 
 
 class Token(Base):

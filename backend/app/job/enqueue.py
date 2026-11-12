@@ -1,8 +1,8 @@
-from datetime import datetime, timezone
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from datetime import UTC, datetime
 
 from app.models.jobs import Job
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 ACTIVE_STATUSES = ("pending", "running")
 
@@ -21,7 +21,7 @@ def enqueue_job(db: Session, user_id: int, job_type: str, payload: dict | None =
     if existing:
         return existing
 
-    job = Job(user_id=user_id, type=job_type, payload=payload, run_after=run_after if run_after is not None else datetime.now(timezone.utc))
+    job = Job(user_id=user_id, type=job_type, payload=payload, run_after=run_after if run_after is not None else datetime.now(UTC))
     db.add(job)
     db.flush()
     return job

@@ -1,8 +1,9 @@
 import math
 from dataclasses import dataclass
 
+
 @dataclass
-class GlickoRating():
+class GlickoRating:
     rating: float
     rd: float
     volatility: float

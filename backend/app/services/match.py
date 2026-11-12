@@ -1,19 +1,26 @@
-from datetime import datetime, timezone, timedelta
-from fastapi import HTTPException, status
-from sqlalchemy import select, func, update as sqlUpdate
-from sqlalchemy.orm import Session
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
-from app.services.tachi import score_from_tachi, score_time, get_recent_scores
-from app.core.enums import MatchType, MatchStatus, MatchResult, ClearTypes
-from app.core.errors import GenericRatingNotFound, MatchNotRollbackable, PlayerNotFound, SeedPending, ChartNotFoundForRating, MatchNotFound
-from app.models import User, Chart, ChartRating, Match, PlayerRating, ChartTableLevel
-from app.services.rating import get_player_rating, seed_player_rating, get_chart_rating
-from app.services.streaks import effective_rd
-from app.job.enqueue import enqueue_tachi_seed, enqueue_match_final_check
-from app.logic.ratings import ELO_FLOOR
-from app.logic.glicko import stakes, GlickoRating, update
+from app.core.enums import ClearTypes, MatchResult, MatchStatus, MatchType
+from app.core.errors import (
+    ChartNotFoundForRating,
+    GenericRatingNotFound,
+    MatchNotFound,
+    MatchNotRollbackable,
+    PlayerNotFound,
+    SeedPending,
+)
+from app.job.enqueue import enqueue_match_final_check, enqueue_tachi_seed
+from app.logic.glicko import GlickoRating, stakes, update
 from app.logic.match import choose_best_score
+from app.logic.ratings import ELO_FLOOR
+from app.models import Chart, ChartRating, ChartTableLevel, Match, PlayerRating, User
+from app.services.rating import get_chart_rating, get_player_rating, seed_player_rating
+from app.services.streaks import effective_rd
+from app.services.tachi import get_recent_scores, score_from_tachi, score_time
+from sqlalchemy import func, select
+from sqlalchemy import update as sqlUpdate
+from sqlalchemy.orm import Session
 
 MAX_SEARCH_WINDOW = 300
 SEARCH_WINDOW_INCREMENT = 50
@@ -58,7 +65,7 @@ def create_match(
 
     random_chart, chart_rating = chart_row
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     match = Match(
         user_id=user.id, 
@@ -131,7 +138,7 @@ def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) 
 
     match.status = MatchStatus.RESOLVED
     match.result = MatchResult.WIN if won else MatchResult.LOSS
-    match.end_time = match.forfeited_at or datetime.now(timezone.utc)
+    match.end_time = match.forfeited_at or datetime.now(UTC)
 
     db.commit()
 
@@ -279,7 +286,7 @@ def get_best_score_for_match(user: User, match: Match):
     return choose_best_score(candidates)
 
 def cancel_stale_matches(db) -> int:
-    cutoff = datetime.now(timezone.utc) - STALE_AFTER
+    cutoff = datetime.now(UTC) - STALE_AFTER
     result = db.execute(
         sqlUpdate(Match)
         .where(Match.status == MatchStatus.ACTIVE, Match.cutoff_time < cutoff)

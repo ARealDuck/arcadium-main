@@ -1,10 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, model_validator, Field
 
+from app.core.enums import ClearTypes, MatchResult, MatchStatus, MatchType
 from app.schemas.auth import UserOut
 from app.schemas.chart import ChartOut
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.core.enums import MatchResult, MatchStatus, MatchType, ClearTypes
 
 class MatchScoreOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
