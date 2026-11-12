@@ -74,6 +74,16 @@ export default function SettingsPage() {
 
         setEmailError(undefined)
 
+        const body = { email: email }
+
+        api<User>("/auth/me/email", { method: "PUT", body: JSON.stringify(body) })
+        .then(user => {
+            setUser(user)
+        })
+        .catch(err => {
+            setEmailError(err instanceof Error ? err.message : "Something went wrong while changing your email.")
+        })
+
     }
 
     useEffect(() => {
