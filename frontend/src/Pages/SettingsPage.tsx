@@ -2,10 +2,11 @@ import { useEffect, useState } from "react"
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../util/helpers";
 import type { ProfileSettings, Invite, Invites, User } from "../util/NetworkModels";
-import { Button } from "@headlessui/react";
+import { Button, Field, Fieldset, Input, Label } from "@headlessui/react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 import InviteList from "../Components/Settings/InviteList";
 import BokutachiKey from "../Components/General/BokutachiKey";
+import ArcButton from "../Components/General/ArcButton";
 
 export default function SettingsPage() {
 
@@ -16,6 +17,10 @@ export default function SettingsPage() {
     const [dragging, setDragging] = useState(false);
     const [invites, setInvites] = useState<Invites>();
     const [settings, setSettings] = useState<ProfileSettings>();
+    const [email, setEmail] = useState<string>("");
+    const [confirmEmail, setConfirmEmail] = useState<string>("");
+
+    const [emailError, setEmailError] = useState<string>();
 
     function pick(f: File | undefined) {
         if (!f || !f.type.startsWith("image/")) return;
@@ -48,6 +53,29 @@ export default function SettingsPage() {
 
     }
 
+    const changeEmail = async () => {
+        if (email.trim() == "" || confirmEmail.trim() == "")
+        {
+            setEmailError("No email fields can be left blank.")
+            return;
+        }
+
+        if (email.trim() != confirmEmail.trim())
+        {
+            setEmailError("Please make sure both emails match.")
+            return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+        {
+            setEmailError("Email must be in the correct format.")
+            return;
+        }
+
+        setEmailError(undefined)
+
+    }
+
     useEffect(() => {
 
         Promise.all([
@@ -59,8 +87,6 @@ export default function SettingsPage() {
             setSettings(settings)
         })
     }, [])
-
-    console.log(settings)
 
     return (
         <div className="flex flex-col w-7/8 lg:w-1/2 mx-auto">
@@ -88,6 +114,44 @@ export default function SettingsPage() {
                 >
                     Upload
                 </Button>
+            </ForegroundCard>
+
+            <ForegroundCard className="mt-5 bg-transparent">
+                <p className="font-sanchez text-lg">Email</p>
+
+
+                {
+                    emailError ?
+                    <div className="p-3 bg-red-700/25 border rounded-md border-zinc-300/50 mt-5">
+                        <p className="text-subtext">{emailError}</p>
+                    </div> : <></>
+                }
+                
+                <div className="lg:w-5/6 mx-auto mt-5 flex flex-col">
+                    <Fieldset>
+                        <Field className="flex-1">
+                            <Label className="block font-bold text-zinc-200">New Email</Label>
+                            <Input 
+                            value={email}
+                            onChange={(e) => setEmail(e.currentTarget.value)}
+                            className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200"
+                            />
+                        </Field>
+
+                        <Field className="flex-1 mt-5">
+                            <Label className="block font-bold text-zinc-200">Confirm New Email</Label>
+                            <Input 
+                            value={confirmEmail}
+                            onChange={(e) => setConfirmEmail(e.currentTarget.value)}
+                            className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200"
+                            />
+                        </Field>
+                    </Fieldset>
+
+                    <ArcButton onClick={changeEmail} className="self-end mt-5">Change Email</ArcButton>
+                </div>
+
+
             </ForegroundCard>
 
             <ForegroundCard className="mt-5 bg-transparent">
