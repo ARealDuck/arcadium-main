@@ -4,7 +4,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from app.api.dependencies import COOKIE_NAME, CurrentUser, DbSession, set_session_cookie
+from app.api.dependencies import COOKIE_NAME, CurrentSession, CurrentUser, DbSession, set_session_cookie
+from app.api.routes.auth.responses import build_user_out
 from app.config import settings
 from app.core.constants import ALLOWED_FORMATS, MAX_AVATAR_BYTES, MAX_IMAGE_PIXELS
 from app.core.enums import TokenPurpose
@@ -101,7 +102,7 @@ def login(body: LoginIn, response: Response, db: DbSession):
     if user.tachi_api_key != "" or user.tachi_api_key is not None:
         has_tachi_api_key = True
 
-    user_out = UserOut(id=user.id, display_name=user.display_name, username=user.username, avatar_url=user.avatar_url, has_tachi_key=has_tachi_api_key, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+    user_out = build_user_out(user)
 
     return user_out
 
@@ -120,8 +121,7 @@ def logout(
 def me(user: CurrentUser):
     has_tachi_key = bool(user.tachi_api_key)
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=has_tachi_key, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
-
+    return build_user_out(user)
 # Allows a user to link their tachi account. Once this is done, a job is queued to seed them behind the scenes.
 
 @router.post("/me/tachi_key", response_model=JobOut, status_code=200)
@@ -171,7 +171,7 @@ def finish_onboarding(user: CurrentUser, db: DbSession):
 
     db.commit()
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=True, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+    return build_user_out(user)
 
 @router.post("/me/resend_verify", status_code=200)
 def resend_verify(db: DbSession, user: CurrentUser):
@@ -239,14 +239,14 @@ def update_avatar(file: UploadFile, db: DbSession, user: CurrentUser):
     if old_url and old_url.startswith("/api/media/avatars/"):
         (Path(settings.media_dir) / "avatars" / Path(old_url).name).unlink(missing_ok=True)
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+    return build_user_out(user)
 
 # Maybe lock this down further by asking for password at some point?
 @router.put("/me/email", status_code=200)
 def change_email(db: DbSession, body: EmailIn, user: CurrentUser):
 
     if body.email == user.email:
-        return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+        return build_user_out(user)
 
     user.email = body.email
     user.email_verified = False
@@ -261,19 +261,28 @@ def change_email(db: DbSession, body: EmailIn, user: CurrentUser):
     
     db.commit()
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+    return build_user_out(user)
 
 @router.put("/me/password", status_code=200)
-def change_password(db: DbSession, body: PasswordIn, user: CurrentUser):
+def change_password(db: DbSession, session: CurrentSession, body: PasswordIn, user: CurrentUser):
 
-    valid, hash = verify_password(body.old_password, user.password_hash)
+    valid, _ = verify_password(body.old_password, user.password_hash)
 
     if not valid:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Your password is incorrect.")
 
     user.password_hash = hash_password(body.new_password)
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+    db.execute(
+        delete(UserSession).where(
+            UserSession.user_id == user.id,
+            UserSession.token_hash != session.token_hash
+        )
+    )
+
+    db.commit()
+
+    return build_user_out(user)
 
     
     
