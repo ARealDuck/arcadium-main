@@ -3,7 +3,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 import resend
-from sqlalchemy import func, update
+from sqlalchemy import func, select, update
 
 from app.config import settings
 from app.core.enums import ClearTypes, MatchStatus, TokenPurpose
@@ -18,6 +18,7 @@ from app.services.match import (
     resolve_match,
 )
 from app.services.tachi import TachiError, tachi_get
+from app.services.user import find_user_by_identifier
 
 
 class JobError(Exception):
@@ -184,10 +185,59 @@ def send_verify_email(db, job):
     resend.api_key = settings.resend_api_key
 
     resend.Emails.send({
-        "from": "noreply@arcadium.ac",
+        "from": settings.email_from,
         "to": user.email,
         "subject": "Verify Your Email!",
         "html": f"<p>Please click <a href=\"{settings.frontend_url}/verify?token={verify_token}\">this link</a> to verify your email!</p>"
+    })
+
+    return {"sent_to": user.id}
+
+def send_password_reset_email(db, job):
+    user: User = db.get(User, job.user_id)
+
+    if user is None:
+        return {"result": "User not found!"}
+
+    recent = db.scalar(
+        select(Token.id).where(
+            Token.user_id == user.id,
+            Token.purpose == TokenPurpose.RESET,
+            Token.created_at > func.now() - timedelta(minutes=5)
+        )
+    )
+
+    if recent:
+        return {"result": "cooldown"}
+
+    db.execute(
+        update(Token)
+        .where(Token.user_id == user.id, Token.purpose == TokenPurpose.RESET, Token.used_at.is_(None))
+        .values(used_at=func.now())
+    )
+
+    reset_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
+    new_token = Token(
+        purpose=TokenPurpose.RESET,
+        token_hash=token_hash,
+        expires_at=datetime.now(UTC) + timedelta(hours=1)
+    )
+    user.tokens.append(new_token)
+
+    db.commit()
+
+    resend.api_key = settings.resend_api_key
+
+    resend.Emails.send({
+        "from": settings.email_from,
+        "to": user.email,
+        "subject": "Password Reset Request",
+        "html": (
+            f'<p>If you requested a password reset, you can reset it '
+            f'<a href="{settings.frontend_url}/reset?token={reset_token}">here</a>. '
+            f'This link expires in 1 hour. If you didn\'t request this, you can ignore this email.</p>'
+        )
     })
 
     return {"sent_to": user.id}
@@ -201,5 +251,6 @@ HANDLERS = {
     "match_forfeit": match_forfeit,
     "match_cleanup": match_cleanup,
     "tachi_key_valid": tachi_key_valid,
-    "send_verify_email": send_verify_email
+    "send_verify_email": send_verify_email,
+    "send_password_reset_email": send_password_reset_email
 }

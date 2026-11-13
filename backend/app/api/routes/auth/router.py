@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Cookie, HTTPException, Response, UploadFile, status
 from PIL import Image, ImageOps, UnidentifiedImageError
+from pydantic import Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
@@ -22,6 +23,7 @@ from app.core.constants import ALLOWED_FORMATS, MAX_AVATAR_BYTES, MAX_IMAGE_PIXE
 from app.core.enums import TokenPurpose
 from app.core.security import hash_password, hash_token, verify_password
 from app.job.enqueue import (
+    enqueue_job,
     enqueue_send_verify_email,
     enqueue_tachi_check,
     enqueue_tachi_seed,
@@ -29,8 +31,9 @@ from app.job.enqueue import (
 from app.models import User, UserSession
 from app.models.invites import Invite
 from app.models.tokens import Token
-from app.schemas.auth import EmailIn, LoginIn, PasswordIn, RegisterIn, UserOut
+from app.schemas.auth import EmailIn, ForgotIn, LoginIn, PasswordIn, RegisterIn, ResetIn, UserOut
 from app.schemas.job import JobOut
+from app.services.user import find_user_by_identifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
@@ -294,5 +297,55 @@ def change_password(db: DbSession, session: CurrentSession, body: PasswordIn, us
 
     return build_user_out(user)
 
+@router.post("/password/forgot", status_code=200)
+def send_forgot_password(db: DbSession, body: ForgotIn):
+    user = find_user_by_identifier(db, body.identifier)
+
+    if user is not None:
+        enqueue_job(db, user.id, "send_password_reset_email")
+        db.commit()
+
+    return {"msg": "If a user with that name or email exists, we've sent a link to the email on file."}
+
+@router.put("/password/reset", status_code=200)
+def reset_password(db: DbSession, body: ResetIn):
+
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+
+    row = db.scalar(
+        select(Token)
+        .where(
+            Token.token_hash == token_hash,
+            Token.purpose == TokenPurpose.RESET,
+            Token.used_at.is_(None),
+            Token.expires_at > func.now()
+        )
+        .with_for_update()
+    )
+
+    if row is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is invalid or has been used.")
+
+    user = db.get(User, row.user_id)
+
+    if user is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is invalid or has been used.")
+
+    user.password_hash = hash_password(body.new_password)
+    user.email_verified = True
+
+    db.execute(
+        delete(UserSession).where(
+            UserSession.user_id == user.id
+        )
+    )
     
+    row.used_at = func.now()
+
+    db.commit()
+
+    return {"msg": "Your password has now been reset. You may log in now."}
+
+    
+
     
