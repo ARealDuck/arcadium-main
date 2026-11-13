@@ -31,7 +31,7 @@ from app.job.enqueue import (
 from app.models import User, UserSession
 from app.models.invites import Invite
 from app.models.tokens import Token
-from app.schemas.auth import EmailIn, ForgotIn, LoginIn, PasswordIn, RegisterIn, UserOut
+from app.schemas.auth import EmailIn, ForgotIn, LoginIn, PasswordIn, RegisterIn, ResetIn, UserOut
 from app.schemas.job import JobOut
 from app.services.user import find_user_by_identifier
 
@@ -306,5 +306,46 @@ def send_forgot_password(db: DbSession, body: ForgotIn):
         db.commit()
 
     return {"msg": "If a user with that name or email exists, we've sent a link to the email on file."}
+
+@router.put("/password/reset", status_code=200)
+def reset_password(db: DbSession, body: ResetIn):
+
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+
+    row = db.scalar(
+        select(Token)
+        .where(
+            Token.token_hash == token_hash,
+            Token.purpose == TokenPurpose.RESET,
+            Token.used_at.is_(None),
+            Token.expires_at > func.now()
+        )
+        .with_for_update()
+    )
+
+    if row is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is invalid or has been used.")
+
+    user = db.get(User, row.user_id)
+
+    if user is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is invalid or has been used.")
+
+    user.password_hash = hash_password(body.new_password)
+    user.email_verified = True
+
+    db.execute(
+        delete(UserSession).where(
+            UserSession.user_id == user.id
+        )
+    )
     
+    row.used_at = func.now()
+
+    db.commit()
+
+    return {"msg": "Your password has now been reset. You may log in now."}
+
+    
+
     

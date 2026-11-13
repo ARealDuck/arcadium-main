@@ -59,7 +59,7 @@ export default function Login() {
                     </Field>
 
                     <Field>
-                        <Label className="block font-bold">Password</Label>
+                        <Label className="block font-bold">Password <Link to="/check-identifier" className="cursor-pointer text-highlight text-sm ml-3">Forgot password?</Link></Label>
                         <Input 
                         onInput={(e) => setPassword(e.currentTarget.value)} 
                         value={password}
