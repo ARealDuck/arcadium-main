@@ -1,9 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import PlayerRating, Match
+from app.core.enums import MatchResult, MatchStatus, MatchType
 from app.logic.glicko import streak_rd
-from app.core.enums import MatchType, MatchStatus, MatchResult
+from app.models import Match, PlayerRating
+
 
 def effective_rd(db: Session, rating: PlayerRating, user_id: int, ladder: str, game: str, playtype: str) -> float:
     recent = last_n_resolved_matches(db, user_id, ladder, game, playtype, 10)

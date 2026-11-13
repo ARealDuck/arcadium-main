@@ -6,12 +6,12 @@ if TYPE_CHECKING:
     from app.models.users import User
 
 from datetime import datetime
-from sqlalchemy import DateTime, Index, ForeignKey, String, text, false
+
+from sqlalchemy import DateTime, ForeignKey, Index, String, false, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
-from app.core.enums import MatchStatus, MatchResult, MatchType, ClearTypes
-from app.models.base import enum_check, str_enum
+from app.core.enums import ClearTypes, MatchResult, MatchStatus, MatchType
+from app.models.base import Base, enum_check, str_enum
 
 # Match Model -- Players compete in matches. One player versus a chart. Each player can only have one active match at a time across all ladders.
 

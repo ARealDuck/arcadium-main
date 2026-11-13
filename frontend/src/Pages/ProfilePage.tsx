@@ -43,7 +43,7 @@ export default function ProfilePage() {
             )))
             
         })
-    }, [ladder, game, playtype])
+    }, [ladder, game, playtype, id])
 
     const setNewLadder = (value: string) => {
         setLadder(value)

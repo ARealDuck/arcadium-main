@@ -1,5 +1,7 @@
+from sqlalchemy import CheckConstraint
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import Enum as SAEnum, CheckConstraint
+
 
 class Base(DeclarativeBase):
     pass

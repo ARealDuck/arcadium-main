@@ -10,7 +10,6 @@ from app.models.users import User
 from app.schemas.invite import InviteOut, InvitesOut
 from app.services.invites import invites_available
 
-
 router = APIRouter(prefix="/invite", tags=["invite"])
 
 @router.post("/create", response_model=InviteOut, status_code=201)

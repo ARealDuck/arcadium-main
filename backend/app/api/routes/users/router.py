@@ -1,34 +1,48 @@
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse, Response
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import CurrentUser, DbSession
-from app.core.constants import SEED_PRESETS
-from app.logic.ratings import elo_to_sieg, initial_rating, sieg_to_elo
-from app.services.match import get_standing, get_active_match_by_userid, SEARCH_WINDOW_START
-from app.services.user import (
-    get_user_by_id, 
-    get_num_double_a, 
-    get_rank_on_ladder, 
-    get_last_played_on_ladder, 
-    get_rating_series, 
-    get_table_winrates,
-    get_latest_matches,
-    get_activity,
-    get_lamps
-    )
-from app.services.rating import get_player_rating, preset_seed_elo, seed_player_rating
 from app.api.routes.users.responses import build_rating_out
-from app.core.errors import SeedPending
-from app.logic.ratings import ELO_FLOOR, find_rating_for_filter
-from app.models import ChartTableLevel, ChartRating
+from app.core.constants import SEED_PRESETS
 from app.job.enqueue import enqueue_tachi_seed
-
-from app.schemas.match import MatchOut
+from app.logic.ratings import (
+    ELO_FLOOR,
+    elo_to_sieg,
+    find_rating_for_filter,
+    initial_rating,
+)
+from app.models import ChartRating, ChartTableLevel
 from app.schemas.auth import UserRatingOut
-from app.schemas.user import SeedOptionOut, SeedOptionsOut, SetupIn, UserProfileInfoOut, ProfileGenericOut, BMSProfileOut, LadderStatsOut
-
+from app.schemas.match import MatchOut
+from app.schemas.user import (
+    BMSProfileOut,
+    LadderStatsOut,
+    ProfileGenericOut,
+    ProfilePlayerRatingOut,
+    SeedOptionOut,
+    SeedOptionsOut,
+    SettingsOut,
+    SetupIn,
+    UserProfileInfoOut,
+)
+from app.services.match import (
+    SEARCH_WINDOW_START,
+    get_active_match_by_userid,
+)
+from app.services.rating import get_player_rating, preset_seed_elo, seed_player_rating
+from app.services.user import (
+    get_activity,
+    get_lamps,
+    get_last_played_on_ladder,
+    get_latest_matches,
+    get_num_double_a,
+    get_rank_on_ladder,
+    get_rating_series,
+    get_table_winrates,
+    get_user_by_id,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -82,6 +96,10 @@ def set_up_user_rating(db: DbSession, user: CurrentUser, game: str, playtype: st
     except IntegrityError:
         db.rollback()
         rating = get_player_rating(db, user.id, game, playtype, ladder)
+
+    if rating is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "An error occurred processing a rating.")
+    
     response.status_code = status.HTTP_201_CREATED
     return build_rating_out(db, rating, user.id)
 
@@ -123,8 +141,11 @@ def get_table_search_counts(db: DbSession, user: CurrentUser, game: str, playtyp
 
     rating = find_rating_for_filter(user.ratings, game, playtype, ladder)
 
-    low = max(ELO_FLOOR, rating["display_rating"] - SEARCH_WINDOW_START)
-    high = rating["display_rating"] + SEARCH_WINDOW_START
+    if rating is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "A rating for this user doesn't exist.")
+
+    low = max(ELO_FLOOR, rating.display_rating - SEARCH_WINDOW_START)
+    high = rating.display_rating + SEARCH_WINDOW_START
 
     search = (
         select(
@@ -163,7 +184,7 @@ def get_profile_info(db: DbSession, id: int, game: str, playtype: str, ladder: s
     if player_rating is None:
         return UserProfileInfoOut(
             generic=profile_generic,
-            ratings=user.ratings
+            ratings=[ProfilePlayerRatingOut.model_validate(r) for r in user.ratings]
         )
 
     rank, total = get_rank_on_ladder(db, player_rating)
@@ -174,14 +195,19 @@ def get_profile_info(db: DbSession, id: int, game: str, playtype: str, ladder: s
     activity = get_activity(db, user.id, game, playtype, ladder)
     lamp_counts = get_lamps(db, user.id, game, playtype, ladder)
 
-    ladder_stats = LadderStatsOut(rating_series=rating_series, matches=latest_matches, activity=activity, lamp_counts=lamp_counts)
+    ladder_stats = LadderStatsOut(rating_series=rating_series, matches=[MatchOut.model_validate(r) for r in latest_matches], activity=activity, lamp_counts=lamp_counts)
 
     return UserProfileInfoOut(
         generic=profile_generic,
-        ratings=user.ratings,
+        ratings=[ProfilePlayerRatingOut.model_validate(r) for r in user.ratings],
         ladder_stats=ladder_stats,
         rating_rank=rank,
         rating_total=total,
         last_played=last_played,
         bms=BMSProfileOut(num_aa=num_aa, table_winrate=table_winrate)
     )
+
+@router.get("/me/settings", response_model=SettingsOut)
+def get_user_profile_settings(db: DbSession, user: CurrentUser):
+    key = user.tachi_api_key
+    return SettingsOut(bokutachi_key_hint=f"••••••{key[-4:]}" if key else None)

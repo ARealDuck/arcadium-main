@@ -1,13 +1,26 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Index, ForeignKey, String, UniqueConstraint, func, text, ARRAY
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import (
+    ARRAY,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
-from app.models.matches import Match
 from app.models.charts import Chart
+from app.models.matches import Match
+
+if TYPE_CHECKING:
+    from app.models.tokens import Token
 
 # User Model -- Self explanatory. Handles all user basic information, their Tachi API key, and seeding for initial placements.
 
@@ -22,7 +35,7 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(32))
     username: Mapped[str] = mapped_column(String(20))
     tachi_api_key: Mapped[str | None] = mapped_column(String(255))
-    email: Mapped[str | None] = mapped_column(String(255))
+    email: Mapped[str] = mapped_column(String(255), unique=True)
     email_verified: Mapped[bool] = mapped_column(default=False)
     password_hash: Mapped[str | None] = mapped_column(String(255))
     avatar_url: Mapped[str | None]

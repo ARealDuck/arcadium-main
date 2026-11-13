@@ -12,9 +12,9 @@ from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 
 from app.core.db import SessionLocal, engine
-from app.models import Base, Chart, ChartTableLevel, ChartRating
 from app.logic.glicko import DEFAULT_VOLATILITY
 from app.logic.ratings import SEED_RD
+from app.models import Base, Chart, ChartRating, ChartTableLevel
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 BATCH_SIZE = 1000

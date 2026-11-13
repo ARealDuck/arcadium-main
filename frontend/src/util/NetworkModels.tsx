@@ -196,3 +196,7 @@ export interface SeedOptions {
     presets: SeedOption[];
     tachi: SeedOption | null;
 }
+
+export interface ProfileSettings {
+    bokutachi_key_hint: string
+}

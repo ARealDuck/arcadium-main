@@ -1,21 +1,20 @@
-from fastapi import APIRouter, Depends, Query
 from typing import Annotated
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload, Session
 
-from app.core.db import get_db
+from fastapi import APIRouter, Query
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
+
 from app.api.dependencies import DbSession
-from app.models import Chart, ChartRating, ChartTableLevel
 from app.logic.ratings import ELO_FLOOR
-from app.services.match import SEARCH_WINDOW_START
-
+from app.models import Chart, ChartRating, ChartTableLevel
 from app.schemas.chart import ChartOut
+from app.services.match import SEARCH_WINDOW_START
 
 router = APIRouter(prefix="/chart", tags=["chart"])
 
 @router.get("", response_model=list[ChartOut])
 def get_charts(
-    db: Session = Depends(get_db),
+    db: DbSession,
     ladder: Annotated[str, Query(pattern="^(ec|hc)$")] = "ec",
     min_rating: float | None = None,
     max_rating: float | None = None,

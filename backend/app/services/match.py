@@ -1,19 +1,31 @@
-from datetime import datetime, timezone, timedelta
-from fastapi import HTTPException, status
-from sqlalchemy import select, func, update as sqlUpdate
-from sqlalchemy.orm import Session
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
-from app.services.tachi import score_from_tachi, score_time, get_recent_scores
-from app.core.enums import MatchType, MatchStatus, MatchResult, ClearTypes
-from app.core.errors import GenericRatingNotFound, MatchNotRollbackable, PlayerNotFound, SeedPending, ChartNotFoundForRating, MatchNotFound
-from app.models import User, Chart, ChartRating, Match, PlayerRating, ChartTableLevel
-from app.services.rating import get_player_rating, seed_player_rating, get_chart_rating
-from app.services.streaks import effective_rd
-from app.job.enqueue import enqueue_tachi_seed, enqueue_match_final_check
-from app.logic.ratings import ELO_FLOOR
-from app.logic.glicko import stakes, GlickoRating, update
+from sqlalchemy import func, select
+from sqlalchemy import update as sqlUpdate
+from sqlalchemy.orm import Session
+
+from app.core.enums import ClearTypes, MatchResult, MatchStatus, MatchType
+from app.core.errors import (
+    ChartNotFound,
+    ChartNotFoundForRating,
+    GenericRatingNotFound,
+    MatchNotFound,
+    MatchNotRollbackable,
+    PlayerHasNoTachiKey,
+    PlayerNotFound,
+    RatingNotFoundForChart,
+    RatingNotFoundForPlayer,
+    SeedPending,
+)
+from app.job.enqueue import enqueue_match_final_check, enqueue_tachi_seed
+from app.logic.glicko import GlickoRating, stakes, update
 from app.logic.match import choose_best_score
+from app.logic.ratings import ELO_FLOOR
+from app.models import Chart, ChartRating, ChartTableLevel, Match, PlayerRating, User
+from app.services.rating import get_chart_rating, get_player_rating, seed_player_rating
+from app.services.streaks import effective_rd
+from app.services.tachi import get_recent_scores, score_from_tachi, score_time
 
 MAX_SEARCH_WINDOW = 300
 SEARCH_WINDOW_INCREMENT = 50
@@ -58,7 +70,7 @@ def create_match(
 
     random_chart, chart_rating = chart_row
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     match = Match(
         user_id=user.id, 
@@ -115,8 +127,8 @@ def search_for_chart(db: Session, search_rating: float, ladder: str, tables: lis
     return None
 
 # This gets run for EVERYTHING that concludes matches. Such as forfeit, winning, losing, time ending, etc. Anytime we want to end a match legitimately, it should go through here.
-def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) -> dict:
-    match: Match = db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) -> dict | None:
+    match: Match | None = db.scalar(select(Match).where(Match.id == match_id).with_for_update())
 
     if match is None:
         raise MatchNotFound(match_id)
@@ -131,7 +143,7 @@ def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) 
 
     match.status = MatchStatus.RESOLVED
     match.result = MatchResult.WIN if won else MatchResult.LOSS
-    match.end_time = match.forfeited_at or datetime.now(timezone.utc)
+    match.end_time = match.forfeited_at or datetime.now(UTC)
 
     db.commit()
 
@@ -140,6 +152,12 @@ def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) 
 def apply_rating_update(db: Session, match: Match, won: bool):
     player = get_player_rating(db, match.user_id, match.game, match.playtype, match.ladder)
     chart = get_chart_rating(db, match.chart_id, match.ladder)
+
+    if player is None:
+        raise PlayerNotFound(match.user_id)
+
+    if chart is None:
+        raise ChartNotFound(match.chart_id)
 
     s = float(won)
 
@@ -250,11 +268,17 @@ def calculate_stakes(db: Session, user: User, match: Match) -> tuple[float, floa
         None,
     )
 
-    chart_rating : ChartRating = next(
+    if rating is None:
+        raise RatingNotFoundForPlayer(user.id)
+
+    chart_rating : ChartRating | None = next(
         (r for r in match.chart.ratings
         if r.ladder == match.ladder),
         None,
     )
+
+    if chart_rating is None:
+        raise RatingNotFoundForChart(match.chart_id)
 
     rd = effective_rd(db, rating, user.id, match.ladder, match.game, match.playtype)
 
@@ -273,13 +297,16 @@ def scores_for_match(scores: list[dict], match: Match) -> list[dict]:
 
 def get_best_score_for_match(user: User, match: Match):
 
+    if user.tachi_api_key is None:
+        raise PlayerHasNoTachiKey(user.id)
+
     scores = get_recent_scores(user.tachi_api_key, match.playtype)
     candidates = scores_for_match(scores, match)
 
     return choose_best_score(candidates)
 
 def cancel_stale_matches(db) -> int:
-    cutoff = datetime.now(timezone.utc) - STALE_AFTER
+    cutoff = datetime.now(UTC) - STALE_AFTER
     result = db.execute(
         sqlUpdate(Match)
         .where(Match.status == MatchStatus.ACTIVE, Match.cutoff_time < cutoff)
@@ -306,7 +333,10 @@ def rollback_match(db: Session, match_id: int):
     if user is None:
         raise PlayerNotFound(match.user_id)
 
-    if match.player_display_after is None or match.chart_rating_after is None:
+    if (
+        match.player_display_before is None or match.player_display_after is None
+        or match.chart_rating_before is None or match.chart_rating_after is None
+    ):
         raise MatchNotRollbackable(match_id)
 
     adjustment = match.player_display_after - match.player_display_before
@@ -314,10 +344,10 @@ def rollback_match(db: Session, match_id: int):
     player_rd_adjustment = 0
     chart_rd_adjustment = 0
 
-    if match.player_rd_after is not None:
+    if match.player_rd_before is not None and match.player_rd_after is not None:
         player_rd_adjustment = match.player_rd_after - match.player_rd_before
 
-    if match.chart_rd_after is not None:
+    if match.chart_rd_before is not None and match.chart_rd_after is not None:
         chart_rd_adjustment = match.chart_rd_after - match.chart_rd_before
 
     user_rating = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)

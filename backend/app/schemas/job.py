@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class JobOut(BaseModel):
     model_config = {"from_attributes": True}
 

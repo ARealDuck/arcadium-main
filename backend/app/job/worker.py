@@ -1,4 +1,5 @@
 import time
+import traceback
 
 from sqlalchemy import func, select
 
@@ -44,8 +45,9 @@ def run_job(db, job):
         db.rollback()
         job.status = "failed"
         job.error = str(e)
-    except Exception as e:
+    except Exception as e: # noqa: BLE001 - worker must survive any job failure
         db.rollback()
+        traceback.print_exc()
         job.status = "failed"
         job.error = "Something went wrong while processing this job"
         print(f"Job {job.id} crashed: {e!r}", flush=True)

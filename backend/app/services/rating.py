@@ -1,9 +1,10 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import PlayerRating, ChartRating
 from app.logic.ratings import initial_rating, sieg_to_elo
+from app.models import ChartRating, PlayerRating
 from app.models.charts import Chart
+
 
 def seed_player_rating(db: Session, user_id: int, game: str, playtype: str, ladder: str, seed) -> PlayerRating:
     elo, rd = initial_rating(seed, ladder)
@@ -30,7 +31,7 @@ def get_player_rating(db: Session, user_id: int, game: str, playtype: str, ladde
         )
     )
 
-def get_chart_rating(db: Session, chart_id: str, ladder: str) -> ChartRating:
+def get_chart_rating(db: Session, chart_id: str, ladder: str) -> ChartRating | None:
     return db.scalar(
         select(ChartRating).where(
             ChartRating.chart_id == chart_id,

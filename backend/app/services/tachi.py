@@ -1,5 +1,6 @@
+from datetime import UTC, datetime
+
 import httpx
-from datetime import datetime, timezone
 
 from app.models import MatchScore
 
@@ -40,4 +41,4 @@ def get_recent_scores(api_key: str, playtype: str) -> list[dict]:
 
 def score_time(score: dict) -> datetime:
     ms = score.get("timeAchieved") or score["timeAdded"]
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+    return datetime.fromtimestamp(ms / 1000, tz=UTC)

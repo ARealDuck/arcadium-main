@@ -1,23 +1,30 @@
-from fastapi import APIRouter, status, HTTPException, Query
-from fastapi.responses import HTMLResponse
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from sqlalchemy import func, select
+from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
+from sqlalchemy import select
 
-from app.api.routes.users.router import get_user_rating_filtered
-from app.core.enums import CancelReason, MatchResult, MatchStatus, MatchType
-from app.models import Match, UserAvoidedChart, User
-from app.models.users import PlayerRating
-from app.services.match import calculate_stakes, get_active_match_by_userid, create_match, rollback_match
-from app.services.rating import get_chart_rating, get_player_rating
-from app.services.tables import valid_table_icons
 from app.api.dependencies import AdminUser, CurrentUser, DbSession
-from app.job.enqueue import enqueue_match_pre_submission, enqueue_match_forfeit, enqueue_match_cleanup
-from app.core.errors import MatchNotFound, RollbackError, SeedPending, InvalidTables
+from app.core.enums import CancelReason, MatchStatus, MatchType
+from app.core.errors import InvalidTables, MatchNotFound, RollbackError, SeedPending
+from app.job.enqueue import (
+    enqueue_match_cleanup,
+    enqueue_match_forfeit,
+    enqueue_match_pre_submission,
+)
 from app.logic.ratings import find_rating_for_filter
-
+from app.models import Match, User, UserAvoidedChart
+from app.models.users import PlayerRating
 from app.schemas.match import MatchOut, MatchWithStakesOut, PlacementOut, StartMatchIn
+from app.services.match import (
+    calculate_stakes,
+    create_match,
+    get_active_match_by_userid,
+    rollback_match,
+)
+from app.services.rating import get_player_rating
+from app.services.tables import valid_table_icons
 
 router = APIRouter(prefix="/match", tags=["match"])
 
@@ -30,9 +37,15 @@ def get_match_by_id(db: DbSession, match_id: int):
     
     user = db.get(User, match.user_id)
 
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
     pt_gain, pt_loss = calculate_stakes(db, user, match)
 
-    user_rating: PlayerRating = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)
+    user_rating: PlayerRating | None = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)
+
+    if user_rating is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Player does not appear to have any ratings on this match's ladder.")
 
     placement = PlacementOut(played=user_rating.games_played, required=5) if user_rating.games_played <= 5 else None
 
@@ -91,12 +104,12 @@ def skip_active_match(db: DbSession, user: CurrentUser):
 
     skip_limit_time = active_match.start_time + timedelta(minutes=0.5)
 
-    if datetime.now(timezone.utc) > skip_limit_time:
+    if datetime.now(UTC) > skip_limit_time:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not within the allotted time to skip match!")
 
     active_match.status = MatchStatus.CANCELLED
     active_match.cancel_reason = CancelReason.NO_CHART
-    active_match.end_time = datetime.now(timezone.utc)
+    active_match.end_time = datetime.now(UTC)
 
     user.avoided_charts.append(UserAvoidedChart(chart_id=active_match.chart_id))
 
@@ -104,7 +117,10 @@ def skip_active_match(db: DbSession, user: CurrentUser):
 
     rating = find_rating_for_filter(user.ratings, active_match.game, active_match.playtype, active_match.ladder)
 
-    new_match = create_match(db, user, active_match.game, active_match.playtype, active_match.ladder, active_match.type, active_match.search_elo, rating["selected_tables"], [a.chart_id for a in user.avoided_charts])
+    if rating is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "The user in this match has no available ratings.")
+
+    new_match = create_match(db, user, active_match.game, active_match.playtype, active_match.ladder, active_match.type, active_match.search_elo, rating.selected_tables, [a.chart_id for a in user.avoided_charts])
 
     pt_gain, pt_loss = calculate_stakes(db, user, new_match)
 
@@ -124,7 +140,7 @@ def forfeit_active_match(db: DbSession, user: CurrentUser):
     if active_match.forfeited_at is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Match is already being forfeited!")
 
-    active_match.forfeited_at = datetime.now(timezone.utc)
+    active_match.forfeited_at = datetime.now(UTC)
 
     enqueue_match_forfeit(db, user.id, active_match.id)
 
@@ -178,7 +194,7 @@ def rollback_batch(db: DbSession, admin: AdminUser, start: datetime, end: dateti
 
 @router.get("/{user_id}/table", response_class=HTMLResponse)
 def serve_user_table_index(db: DbSession, user_id: int):
-    return f"""
+    return """
 <!DOCTYPE html>
 <html>
 <head>
@@ -202,7 +218,7 @@ def serve_header_table_data(db: DbSession, user_id: int):
     return {
         "name": f"Arcadium Ladder: {user.username}",
         "symbol": "※",
-        "data_url": f"data.json"
+        "data_url": "data.json"
         }
 
 @router.get("/{user_id}/table/data.json")

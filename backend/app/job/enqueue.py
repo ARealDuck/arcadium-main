@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -21,7 +22,7 @@ def enqueue_job(db: Session, user_id: int, job_type: str, payload: dict | None =
     if existing:
         return existing
 
-    job = Job(user_id=user_id, type=job_type, payload=payload, run_after=run_after if run_after is not None else datetime.now(timezone.utc))
+    job = Job(user_id=user_id, type=job_type, payload=payload, run_after=run_after if run_after is not None else datetime.now(UTC))
     db.add(job)
     db.flush()
     return job
@@ -31,6 +32,7 @@ def enqueue_job(db: Session, user_id: int, job_type: str, payload: dict | None =
 def enqueue_tachi_check(db, user_id: int, tachi_key: str) -> Job:
     return enqueue_job(db, user_id, "tachi_key_valid", {"key": tachi_key})
 
+# This needs adjustment, I have no idea why I hardcoded this as playtype 7k lmao.
 def enqueue_tachi_seed(db, user_id: int) -> Job:
     return enqueue_job(db, user_id, "tachi_seed_profile", {"playtype": "7k"})
 

@@ -22,6 +22,8 @@ import OnboardingPage from './Pages/OnboardingPage.tsx'
 import { ActiveMatchProvider } from './hooks/useActiveMatch.tsx'
 import VerifyPage from './Pages/VerifyPage.tsx'
 import SettingsPage from './Pages/SettingsPage.tsx'
+import ResetPage from './Pages/ResetPage.tsx'
+import CheckIdentifier from './Pages/CheckIdentifier.tsx'
 
 // Has to be done to use useActiveMatch within layout. ActiveMatchProvider has to be within Router for useLocation, so we can refresha activematch upon route switch.
 function ActiveMatchRoute() {
@@ -38,6 +40,14 @@ const router = createBrowserRouter([
   },
   {
     path: "/register", element: <Register />
+  },
+  {
+    path: "/reset",
+    element: <ResetPage />
+  },
+  {
+    path: "/check-identifier",
+    element: <CheckIdentifier />
   },
   {
     element: <RequireAuth/>,
@@ -73,7 +83,6 @@ const router = createBrowserRouter([
         path: "/verify",
         element: <VerifyPage />
       }
-
     ]
   }
 ])

@@ -1,8 +1,10 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.match import MatchOut
+
 
 class ProfileGenericOut(BaseModel):
     display_name: str
@@ -62,3 +64,6 @@ class SeedOptionOut(BaseModel):
 class SeedOptionsOut(BaseModel):
     presets: list[SeedOptionOut]
     tachi: SeedOptionOut | None = None
+
+class SettingsOut(BaseModel):
+    bokutachi_key_hint: str | None = None

@@ -1,11 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import func;
+from sqlalchemy import func
 
-from app.api.dependencies import CurrentUser
-from app.models import Job
-from app.api.dependencies import DbSession
+from app.api.dependencies import CurrentUser, DbSession
 from app.job.enqueue import enqueue_job
-
+from app.models import Job
 from app.schemas.job import JobOut
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])

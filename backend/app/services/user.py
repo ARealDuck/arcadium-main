@@ -1,10 +1,13 @@
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, func
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import User, MatchScore, Match, PlayerRating, ChartTableLevel
+from app.core.enums import MatchStatus, MatchType
+from app.models import ChartTableLevel, Match, MatchScore, PlayerRating, User
 from app.schemas.user import RatingPointOut, TableWinrateOut
-from app.core.enums import MatchType, MatchStatus
+
 
 def get_user_by_id(db: Session, id: int):
     return db.get(User, id)
@@ -36,7 +39,7 @@ def get_rank_on_ladder(db: Session, rating: PlayerRating):
 
     higher = db.scalar(
         select(func.count()).where(*same_ladder, PlayerRating.display_rating > rating.display_rating)
-    )
+    ) or 0
 
     total = db.scalar(select(func.count()).where(*same_ladder))
 
@@ -60,7 +63,7 @@ def get_last_played_on_ladder(db: Session, user_id: int, game: str, playtype: st
 
 def get_rating_series(db: Session, user_id: int, game: str, playtype: str, ladder: str, days: int = 365) -> list[RatingPointOut]:
     day = func.date(Match.end_time).label("day")
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     rows = db.execute(
         select(day, Match.player_display_after.label("rating"))
@@ -103,7 +106,7 @@ def get_table_winrates(db: Session, user_id: int, game: str, playtype: str, ladd
 
     return [TableWinrateOut(table_icon=r.table_icon, games=r.games, wins=r.wins) for r in rows]
 
-def get_latest_matches(db: Session, user_id: int, game: str, playtype: str, ladder: str, limit: int = 20) -> list[Match]:
+def get_latest_matches(db: Session, user_id: int, game: str, playtype: str, ladder: str, limit: int = 20) -> Sequence[Match]:
     latest_matches = db.scalars(
         select(Match)
         .where(
@@ -123,7 +126,7 @@ def get_latest_matches(db: Session, user_id: int, game: str, playtype: str, ladd
 
 def get_activity(db: Session, user_id: int, game: str, playtype: str, ladder: str, days: int = 365) -> dict[str, int]:
     day = func.date(Match.start_time).label("day")
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     rows = db.execute(
         select(day, func.count())
@@ -161,3 +164,11 @@ def get_lamps(db: Session, user_id: int, game: str, playtype: str, ladder: str) 
     ).all()
 
     return {lamp: n for lamp, n in rows}
+
+def find_user_by_identifier(db: Session, identifier: str) -> User | None:
+    ident = identifier.strip()
+
+    if "@" in ident:
+        return db.scalar(select(User).where(func.lower(User.email) == ident.lower()))
+
+    return db.scalar(select(User).where(func.lower(User.username) == ident.lower()))

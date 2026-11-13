@@ -1,36 +1,53 @@
-from datetime import datetime, timedelta, timezone
+import hashlib
 import io
+from datetime import UTC, datetime
 from pathlib import Path
-import secrets, hashlib
 from uuid import uuid4
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, UploadFile, status
-from sqlalchemy import delete, func, select, update
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-from PIL import Image, UnidentifiedImageError, ImageOps
 
+from fastapi import APIRouter, Cookie, HTTPException, Response, UploadFile, status
+from PIL import Image, ImageOps, UnidentifiedImageError
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
+
+from app.api.dependencies import (
+    COOKIE_NAME,
+    CurrentSession,
+    CurrentUser,
+    DbSession,
+    set_session_cookie,
+)
+from app.api.routes.auth.responses import build_user_out
 from app.config import settings
 from app.core.constants import ALLOWED_FORMATS, MAX_AVATAR_BYTES, MAX_IMAGE_PIXELS
-from app.core.db import get_db
 from app.core.enums import TokenPurpose
+from app.core.security import hash_password, hash_token, verify_password
+from app.job.enqueue import (
+    enqueue_job,
+    enqueue_send_verify_email,
+    enqueue_tachi_check,
+    enqueue_tachi_seed,
+)
 from app.models import User, UserSession
-from app.api.dependencies import COOKIE_NAME, DbSession, get_current_user, set_session_cookie
-from app.job.enqueue import enqueue_send_verify_email, enqueue_tachi_check, enqueue_tachi_seed
 from app.models.invites import Invite
 from app.models.tokens import Token
+from app.schemas.auth import (
+    EmailIn,
+    ForgotIn,
+    LoginIn,
+    PasswordIn,
+    RegisterIn,
+    ResetIn,
+    UserOut,
+)
 from app.schemas.job import JobOut
-from app.core.security import hash_password, hash_token, verify_password
-
-from app.schemas.auth import UserOut, RegisterIn, LoginIn
+from app.services.user import find_user_by_identifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)):
+def register(body: RegisterIn, response: Response, db: DbSession):
     invite = None
-
-    print(settings.invites_required)
 
     if settings.invites_required or body.invite_code:
         if not body.invite_code:
@@ -79,7 +96,7 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
     return user
 
 @router.post("/login", response_model=UserOut)
-def login(body: LoginIn, response: Response, db: Session = Depends(get_db)):
+def login(body: LoginIn, response: Response, db: DbSession):
     ident = body.identifier.strip().lower()
     column = User.email if "@" in ident else User.username
     user = db.scalar(select(User).where(func.lower(column) == ident))
@@ -97,21 +114,15 @@ def login(body: LoginIn, response: Response, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    has_tachi_api_key = False
-
-    if user.tachi_api_key != "" or user.tachi_api_key is not None:
-        has_tachi_api_key = True
-
-    user_out = UserOut(id=user.id, display_name=user.display_name, username=user.username, avatar_url=user.avatar_url, has_tachi_key=has_tachi_api_key, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
-        
+    user_out = build_user_out(user)
 
     return user_out
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
     response: Response,
+    db: DbSession,
     session_token: str | None = Cookie(default=None, alias=COOKIE_NAME),
-    db: Session = Depends(get_db)
 ):
     if session_token:
         db.execute(delete(UserSession).where(UserSession.token_hash == hash_token(session_token)))
@@ -119,15 +130,12 @@ def logout(
     response.delete_cookie(COOKIE_NAME)
 
 @router.get("/me", response_model=UserOut)
-def me(user: User = Depends(get_current_user)):
-    has_tachi_key = bool(user.tachi_api_key)
-
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=has_tachi_key, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
-
+def me(user: CurrentUser):
+    return build_user_out(user)
 # Allows a user to link their tachi account. Once this is done, a job is queued to seed them behind the scenes.
 
 @router.post("/me/tachi_key", response_model=JobOut, status_code=200)
-def tachi_key(tachi_key: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def tachi_key(tachi_key: str, user: CurrentUser, db: DbSession):
     if (tachi_key == None or tachi_key.strip() == ""):
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Tachi key must not be empty!")
     
@@ -139,33 +147,44 @@ def tachi_key(tachi_key: str, user: User = Depends(get_current_user), db: Sessio
 
     return job
 
-@router.put("/me/confirm_tachi_key", response_model=JobOut, status_code=200)
-def confirm_tachi_key(tachi_key: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+
+
+@router.put("/me/confirm_tachi_key", response_model=JobOut | None, status_code=200)
+def confirm_tachi_key(tachi_key: str, user: CurrentUser, db: DbSession):
     if (tachi_key == None or tachi_key.strip() == ""):
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Tachi key must not be empty!")
 
+    job = None
+    skip_seeding = False
+
+    # We might need to move seeding to a different function, or change how we do it for use with multiple games
+    # If first seed job fails, they won't have any seeds to use. This is fine, since we have presets. but just a thought.
+    if user.tachi_api_key:
+        skip_seeding = True
+
     user.tachi_api_key = tachi_key
 
-    job = enqueue_tachi_seed(db, user.id)
+    if not skip_seeding:
+        job = enqueue_tachi_seed(db, user.id)
 
     db.commit()
 
     return job
 
 @router.put('/me/finish_onboarding', status_code=200)
-def finish_onboarding(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if user.tachi_api_key.strip() == "" or user.tachi_api_key is None:
-        raise HTTPException("Link your tachi key first!")
+def finish_onboarding(user: CurrentUser, db: DbSession):
+    if not (user.tachi_api_key or "").strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Link your tachi key first!")
 
     if user.onboarded_at is None:
-        user.onboarded_at = datetime.now(timezone.utc)
+        user.onboarded_at = datetime.now(UTC)
 
     db.commit()
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=True, onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+    return build_user_out(user)
 
 @router.post("/me/resend_verify", status_code=200)
-def resend_verify(db: DbSession, user: User = Depends(get_current_user)):
+def resend_verify(db: DbSession, user: CurrentUser):
     job = enqueue_send_verify_email(db, user.id)
 
     db.commit()
@@ -173,7 +192,7 @@ def resend_verify(db: DbSession, user: User = Depends(get_current_user)):
     return job
 
 @router.post('/me/verify', status_code=200)
-def verify_email(db: DbSession, token: str, user: User = Depends(get_current_user)):
+def verify_email(db: DbSession, token: str, user: CurrentUser):
     if token is None or token.strip() == "":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No token was specified. Aborting.")
 
@@ -199,7 +218,7 @@ def verify_email(db: DbSession, token: str, user: User = Depends(get_current_use
     return {"message": "Email verified"}
 
 @router.post('/me/avatar', status_code=200)
-def update_avatar(file: UploadFile, db: DbSession, user: User = Depends(get_current_user)):
+def update_avatar(file: UploadFile, db: DbSession, user: CurrentUser):
 
     data = file.file.read(MAX_AVATAR_BYTES + 1)
 
@@ -230,4 +249,103 @@ def update_avatar(file: UploadFile, db: DbSession, user: User = Depends(get_curr
     if old_url and old_url.startswith("/api/media/avatars/"):
         (Path(settings.media_dir) / "avatars" / Path(old_url).name).unlink(missing_ok=True)
 
-    return UserOut(id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, has_tachi_key=bool(user.tachi_api_key), onboarded_at=user.onboarded_at, email_verified=user.email_verified)
+    return build_user_out(user)
+
+# Maybe lock this down further by asking for password at some point?
+@router.put("/me/email", status_code=200)
+def change_email(db: DbSession, body: EmailIn, user: CurrentUser):
+
+    if body.email == user.email:
+        return build_user_out(user)
+
+    user.email = body.email
+    user.email_verified = False
+
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "That email is already in use.")
+
+    enqueue_send_verify_email(db, user.id)
+    
+    db.commit()
+
+    return build_user_out(user)
+
+@router.put("/me/password", status_code=200)
+def change_password(db: DbSession, session: CurrentSession, body: PasswordIn, user: CurrentUser):
+
+    if not user.email_verified:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your email must be verified to change your password.")
+
+    valid, _ = verify_password(body.old_password, user.password_hash)
+
+    if not valid:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your password is incorrect.")
+
+    user.password_hash = hash_password(body.new_password)
+
+    db.execute(
+        delete(UserSession).where(
+            UserSession.user_id == user.id,
+            UserSession.token_hash != session.token_hash
+        )
+    )
+
+    db.commit()
+
+    return build_user_out(user)
+
+@router.post("/password/forgot", status_code=200)
+def send_forgot_password(db: DbSession, body: ForgotIn):
+    user = find_user_by_identifier(db, body.identifier)
+
+    if user is not None:
+        enqueue_job(db, user.id, "send_password_reset_email")
+        db.commit()
+
+    return {"msg": "If a user with that name or email exists, we've sent a link to the email on file."}
+
+@router.put("/password/reset", status_code=200)
+def reset_password(db: DbSession, body: ResetIn):
+
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+
+    row = db.scalar(
+        select(Token)
+        .where(
+            Token.token_hash == token_hash,
+            Token.purpose == TokenPurpose.RESET,
+            Token.used_at.is_(None),
+            Token.expires_at > func.now()
+        )
+        .with_for_update()
+    )
+
+    if row is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is invalid or has been used.")
+
+    user = db.get(User, row.user_id)
+
+    if user is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is invalid or has been used.")
+
+    user.password_hash = hash_password(body.new_password)
+    user.email_verified = True
+
+    db.execute(
+        delete(UserSession).where(
+            UserSession.user_id == user.id
+        )
+    )
+    
+    row.used_at = func.now()
+
+    db.commit()
+
+    return {"msg": "Your password has now been reset. You may log in now."}
+
+    
+
+    
