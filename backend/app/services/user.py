@@ -1,10 +1,11 @@
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, func
+from datetime import UTC, datetime, timedelta
+
+from app.core.enums import MatchStatus, MatchType
+from app.models import ChartTableLevel, Match, MatchScore, PlayerRating, User
+from app.schemas.user import RatingPointOut, TableWinrateOut
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import User, MatchScore, Match, PlayerRating, ChartTableLevel
-from app.schemas.user import RatingPointOut, TableWinrateOut
-from app.core.enums import MatchType, MatchStatus
 
 def get_user_by_id(db: Session, id: int):
     return db.get(User, id)
@@ -60,7 +61,7 @@ def get_last_played_on_ladder(db: Session, user_id: int, game: str, playtype: st
 
 def get_rating_series(db: Session, user_id: int, game: str, playtype: str, ladder: str, days: int = 365) -> list[RatingPointOut]:
     day = func.date(Match.end_time).label("day")
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     rows = db.execute(
         select(day, Match.player_display_after.label("rating"))
@@ -123,7 +124,7 @@ def get_latest_matches(db: Session, user_id: int, game: str, playtype: str, ladd
 
 def get_activity(db: Session, user_id: int, game: str, playtype: str, ladder: str, days: int = 365) -> dict[str, int]:
     day = func.date(Match.start_time).label("day")
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     rows = db.execute(
         select(day, func.count())

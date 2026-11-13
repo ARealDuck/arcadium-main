@@ -1,9 +1,9 @@
 from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, String, func
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import JSONB
 
 from app.models.base import Base
+from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
 
 # Job Model -- The model for our jobs system. We have a worker that runs and handles jobs over time, every certain amount of ms (so we don't spam Tachi's API, or our own API).
 

@@ -1,34 +1,46 @@
+from app.api.dependencies import CurrentUser, DbSession
+from app.api.routes.users.responses import build_rating_out
+from app.core.constants import SEED_PRESETS
+from app.job.enqueue import enqueue_tachi_seed
+from app.logic.ratings import (
+    ELO_FLOOR,
+    elo_to_sieg,
+    find_rating_for_filter,
+    initial_rating,
+)
+from app.models import ChartRating, ChartTableLevel
+from app.schemas.auth import UserRatingOut
+from app.schemas.match import MatchOut
+from app.schemas.user import (
+    BMSProfileOut,
+    LadderStatsOut,
+    ProfileGenericOut,
+    SeedOptionOut,
+    SeedOptionsOut,
+    SettingsOut,
+    SetupIn,
+    UserProfileInfoOut,
+)
+from app.services.match import (
+    SEARCH_WINDOW_START,
+    get_active_match_by_userid,
+)
+from app.services.rating import get_player_rating, preset_seed_elo, seed_player_rating
+from app.services.user import (
+    get_activity,
+    get_lamps,
+    get_last_played_on_ladder,
+    get_latest_matches,
+    get_num_double_a,
+    get_rank_on_ladder,
+    get_rating_series,
+    get_table_winrates,
+    get_user_by_id,
+)
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse, Response
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-
-from app.api.dependencies import CurrentUser, DbSession
-from app.core.constants import SEED_PRESETS
-from app.logic.ratings import elo_to_sieg, initial_rating, sieg_to_elo
-from app.services.match import get_standing, get_active_match_by_userid, SEARCH_WINDOW_START
-from app.services.user import (
-    get_user_by_id, 
-    get_num_double_a, 
-    get_rank_on_ladder, 
-    get_last_played_on_ladder, 
-    get_rating_series, 
-    get_table_winrates,
-    get_latest_matches,
-    get_activity,
-    get_lamps
-    )
-from app.services.rating import get_player_rating, preset_seed_elo, seed_player_rating
-from app.api.routes.users.responses import build_rating_out
-from app.core.errors import SeedPending
-from app.logic.ratings import ELO_FLOOR, find_rating_for_filter
-from app.models import ChartTableLevel, ChartRating
-from app.job.enqueue import enqueue_tachi_seed
-
-from app.schemas.match import MatchOut
-from app.schemas.auth import UserRatingOut
-from app.schemas.user import SeedOptionOut, SeedOptionsOut, SettingsOut, SetupIn, UserProfileInfoOut, ProfileGenericOut, BMSProfileOut, LadderStatsOut
-
 
 router = APIRouter(prefix="/users", tags=["users"])
 

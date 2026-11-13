@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+
 from pwdlib import PasswordHash
 
 password_hasher = PasswordHash.recommended()

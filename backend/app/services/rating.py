@@ -1,9 +1,9 @@
+from app.logic.ratings import initial_rating, sieg_to_elo
+from app.models import ChartRating, PlayerRating
+from app.models.charts import Chart
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import PlayerRating, ChartRating
-from app.logic.ratings import initial_rating, sieg_to_elo
-from app.models.charts import Chart
 
 def seed_player_rating(db: Session, user_id: int, game: str, playtype: str, ladder: str, seed) -> PlayerRating:
     elo, rd = initial_rating(seed, ladder)

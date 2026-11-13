@@ -1,21 +1,23 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
-import resend
-from sqlalchemy import func, update
-from sqlalchemy.orm import Session
+from datetime import UTC, datetime, timedelta
 
+import resend
 from app.config import settings
-from app.core.errors import MatchNotFound
-from app.models import User, Match
 from app.core.enums import ClearTypes, MatchStatus, TokenPurpose
-from app.models.tokens import Token
-from app.services.tachi import TachiError
-from app.services.tachi import tachi_get
-from app.services.match import cancel_stale_matches
-from app.logic.ratings import sieg_to_elo
+from app.core.errors import MatchNotFound
 from app.logic.match import lamp_counts_as_win
-from app.services.match import resolve_match, get_best_score_for_match
+from app.logic.ratings import sieg_to_elo
+from app.models import Match, User
+from app.models.tokens import Token
+from app.services.match import (
+    cancel_stale_matches,
+    get_best_score_for_match,
+    resolve_match,
+)
+from app.services.tachi import TachiError, tachi_get
+from sqlalchemy import func, update
+
 
 class JobError(Exception):
     pass
@@ -26,14 +28,12 @@ def in_match_window(score, match) -> bool:
 
     if added is None or not (match.start_time <= added <= match.cutoff_time):
         return False
-    if achieved is not None and not (match.start_time <= achieved <= match.cutoff_time):
-        return False
-    return True
+    return achieved is None or match.start_time <= achieved <= match.cutoff_time
 
 def tachi_time(ms: int | None) -> datetime | None:
     if ms is None:
         return None
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+    return datetime.fromtimestamp(ms / 1000, tz=UTC)
 
 def check_tachi_key(user):
     if user is None or not user.tachi_api_key:
@@ -83,7 +83,7 @@ def tachi_rating(db, job):
 def tachi_key_valid(db, job):
     tachi_key = job.payload.get("key", None)
 
-    profile = tachi_get(f"/users/me", tachi_key)
+    profile = tachi_get("/users/me", tachi_key)
 
     return profile
 
@@ -174,7 +174,7 @@ def send_verify_email(db, job):
     new_token = Token(
         purpose=TokenPurpose.VERIFY,
         token_hash=token_hash,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+        expires_at=datetime.now(UTC) + timedelta(hours=24)
     )
     user.tokens.append(new_token)
 
@@ -182,7 +182,7 @@ def send_verify_email(db, job):
 
     resend.api_key = settings.resend_api_key
 
-    r = resend.Emails.send({
+    resend.Emails.send({
         "from": "noreply@arcadium.ac",
         "to": user.email,
         "subject": "Verify Your Email!",

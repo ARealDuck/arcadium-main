@@ -1,10 +1,10 @@
 import time
-
-from sqlalchemy import func, select
+import traceback
 
 from app.core.db import SessionLocal
 from app.job.handlers import HANDLERS, JobError
 from app.models import Job
+from sqlalchemy import func, select
 
 REQUESTS_PER_MINUTE = 60
 DELAY_BETWEEN_JOBS = 60 / REQUESTS_PER_MINUTE
@@ -44,8 +44,9 @@ def run_job(db, job):
         db.rollback()
         job.status = "failed"
         job.error = str(e)
-    except Exception as e:
+    except Exception as e: # noqa: BLE001 - worker must survive any job failure
         db.rollback()
+        traceback.print_exc()
         job.status = "failed"
         job.error = "Something went wrong while processing this job"
         print(f"Job {job.id} crashed: {e!r}", flush=True)

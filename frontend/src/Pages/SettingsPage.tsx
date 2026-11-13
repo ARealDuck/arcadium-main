@@ -2,10 +2,11 @@ import { useEffect, useState } from "react"
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../util/helpers";
 import type { ProfileSettings, Invite, Invites, User } from "../util/NetworkModels";
-import { Button } from "@headlessui/react";
+import { Button, Field, Fieldset, Input, Label } from "@headlessui/react";
 import ForegroundCard from "../Components/General/ForegroundCard";
 import InviteList from "../Components/Settings/InviteList";
 import BokutachiKey from "../Components/General/BokutachiKey";
+import ArcButton from "../Components/General/ArcButton";
 
 export default function SettingsPage() {
 
@@ -16,6 +17,15 @@ export default function SettingsPage() {
     const [dragging, setDragging] = useState(false);
     const [invites, setInvites] = useState<Invites>();
     const [settings, setSettings] = useState<ProfileSettings>();
+
+    const [email, setEmail] = useState<string>("");
+    const [confirmEmail, setConfirmEmail] = useState<string>("");
+    const [emailError, setEmailError] = useState<string>();
+
+    const [oldPassword, setOldPassword] = useState<string>("");
+    const [newPassword, setNewPassword] = useState<string>("");
+    const [confirmNewPassword, setConfirmNewPassword] = useState<string>("");
+    const [passwordError, setPasswordError] = useState<string>();
 
     function pick(f: File | undefined) {
         if (!f || !f.type.startsWith("image/")) return;
@@ -48,6 +58,71 @@ export default function SettingsPage() {
 
     }
 
+    const changeEmail = () => {
+        if (email.trim() == "" || confirmEmail.trim() == "")
+        {
+            setEmailError("No email fields can be left blank.")
+            return;
+        }
+
+        if (email.trim() != confirmEmail.trim())
+        {
+            setEmailError("Please make sure both emails match.")
+            return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+        {
+            setEmailError("Email must be in the correct format.")
+            return;
+        }
+
+        const body = { email: email.trim() }
+
+        api<User>("/auth/me/email", { method: "PUT", body: JSON.stringify(body) })
+        .then(user => {
+            setUser(user)
+            setEmail("")
+            setConfirmEmail("")
+            setEmailError(undefined)
+        })
+        .catch(err => {
+            setEmailError(err instanceof Error ? err.message : "Something went wrong while changing your email.")
+        })
+
+    }
+
+    const changePassword = () => {
+        if (newPassword.trim() == "" || oldPassword.trim() == "" || confirmNewPassword.trim() == "")
+        {
+            setPasswordError("No password fields can be left blank.")
+            return;
+        }
+
+        if (newPassword.trim() != confirmNewPassword.trim())
+        {
+            setPasswordError("Passwords must match.")
+            return;
+        }
+
+        const body = { 
+            old_password: oldPassword,
+            new_password: newPassword
+         }
+
+        api<User>("/auth/me/password", { method: "PUT", body: JSON.stringify(body)})
+        .then(user => {
+            setUser(user)
+            setOldPassword("")
+            setNewPassword("")
+            setConfirmNewPassword("")
+            setPasswordError(undefined)
+        })
+        .catch(err => {
+            setPasswordError(err instanceof Error ? err.message : "Something went wrong")
+        })
+    }
+
     useEffect(() => {
 
         Promise.all([
@@ -60,14 +135,14 @@ export default function SettingsPage() {
         })
     }, [])
 
-    console.log(settings)
-
     return (
         <div className="flex flex-col w-7/8 lg:w-1/2 mx-auto">
             <p className="font-archivo text-subtext tracking-[0.2em] text-xl mt-2">Settings</p>
 
             <ForegroundCard className="mt-5">
                 <p className="mb-2 font-sanchez text-lg">Profile Picture</p>
+                <p className="mb-2 font-sanchez text-sm text-subtext">Change your profile picture</p>
+
                 <label
                 onDragOver={e => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
@@ -91,14 +166,107 @@ export default function SettingsPage() {
             </ForegroundCard>
 
             <ForegroundCard className="mt-5 bg-transparent">
+                <p className="font-sanchez text-lg">Email</p>
+                <p className="mb-2 font-sanchez text-sm text-subtext mt-2">Change your Email</p>
+
+                {
+                    emailError ?
+                    <div className="p-3 bg-red-700/25 border rounded-md border-zinc-300/50 mt-5">
+                        <p className="text-subtext">{emailError}</p>
+                    </div> : <></>
+                }
+                
+                <div className="lg:w-5/6 mx-auto mt-5 flex flex-col">
+                    <Fieldset>
+                        <Field className="flex-1">
+                            <Label className="block font-bold text-zinc-200">New Email</Label>
+                            <Input 
+                            value={email}
+                            type="email"
+                            onChange={(e) => setEmail(e.currentTarget.value)}
+                            className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200"
+                            />
+                        </Field>
+
+                        <Field className="flex-1 mt-5">
+                            <Label className="block font-bold text-zinc-200">Confirm New Email</Label>
+                            <Input 
+                            value={confirmEmail}
+                            type="email"
+                            onChange={(e) => setConfirmEmail(e.currentTarget.value)}
+                            className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200"
+                            />
+                        </Field>
+                    </Fieldset>
+
+                    <ArcButton onClick={changeEmail} className="self-end mt-5">Change Email</ArcButton>
+                </div>
+
+
+            </ForegroundCard>
+
+            <ForegroundCard className="mt-5 bg-transparent">
+                <p className="font-sanchez text-lg">Password</p>
+                <p className="mb-2 font-sanchez text-sm text-subtext mt-2">Change your Password</p>
+
+                {
+                    passwordError ?
+                    <div className="p-3 bg-red-700/25 border rounded-md border-zinc-300/50 mt-5">
+                        <p className="text-subtext">{passwordError}</p>
+                    </div> : <></>
+                }
+
+                <div className="lg:w-5/6 mx-auto mt-5 flex flex-col">
+                    <Fieldset>
+                        <Field className="flex-1">
+                            <Label className="block font-bold text-zinc-200">Old Password</Label>
+                            <Input 
+                            value={oldPassword}
+                            type="password"
+                            onChange={(e) => setOldPassword(e.currentTarget.value)}
+                            className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200"
+                            />
+                        </Field>
+
+                        <Field className="flex-1 mt-5">
+                            <Label className="block font-bold text-zinc-200">New Password</Label>
+                            <Input 
+                            value={newPassword}
+                            type="password"
+                            onChange={(e) => setNewPassword(e.currentTarget.value)}
+                            className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200"
+                            />
+                        </Field>
+
+                        <Field className="flex-1 mt-5">
+                            <Label className="block font-bold text-zinc-200">Confirm New Password</Label>
+                            <Input 
+                            value={confirmNewPassword}
+                            type="password"
+                            onChange={(e) => setConfirmNewPassword(e.currentTarget.value)}
+                            className="mt-1 block bg-background-dark w-full p-2 rounded-md font-semibold focus:outline-none data-hover:bg-zinc-600/25 duration-200"
+                            />
+                        </Field>
+                    </Fieldset>
+                    <ArcButton onClick={changePassword} className="self-end mt-5">Change Password</ArcButton>
+                </div>
+
+            </ForegroundCard>
+
+            <ForegroundCard className="mt-5 bg-transparent">
                 <p className="font-sanchez text-lg">Integrations</p>
+                <p className="mb-2 font-sanchez text-sm text-subtext mt-2">Set up service connections</p>
 
                 <BokutachiKey tachi_key={settings?.bokutachi_key_hint} className="w-full lg:w-5/6 mx-auto" />
             </ForegroundCard>
 
             <ForegroundCard className="mt-5">
                 <div className="flex flex-row flex-wrap items-center justify-between gap-3 mb-5">
-                    <p className="font-sanchez text-lg">Invites</p>
+                    <div>
+                        <p className="font-sanchez text-lg">Invites</p>
+                        <p className="mb-2 font-sanchez text-sm text-subtext mt-2">Invite your friends or people that you trust</p>
+                    </div>
+
 
                     <div className="flex items-center gap-3 bg-zinc-300/25 p-3 rounded-xl">
                         <span className="text-lg font-sanchez">{invites?.available} <span className="text-subtext">available</span></span>

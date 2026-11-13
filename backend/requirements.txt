@@ -32,6 +32,7 @@ python-multipart==0.0.33
 PyYAML==6.0.3
 requests==2.34.2
 resend==2.50.1
+ruff==0.17.5
 SQLAlchemy==2.1.1
 starlette==1.7.0
 typing-inspection==0.4.4

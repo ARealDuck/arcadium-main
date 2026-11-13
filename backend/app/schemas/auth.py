@@ -1,8 +1,16 @@
 import re
 import unicodedata
 from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator, StringConstraints
 from typing import Annotated
+
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 DISPLAY_NAME_RE = re.compile(r"^[\w .\-'!?~★☆]{1,32}$")
 
@@ -65,3 +73,10 @@ class UserOut(BaseModel):
     email_verified: bool
 
     model_config = {"from_attributes": True}
+
+class EmailIn(BaseModel):
+    email: EmailStr
+
+class PasswordIn(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)

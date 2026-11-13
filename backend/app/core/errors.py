@@ -21,7 +21,7 @@ class MatchNotRollbackable(RollbackError):
 
 class InvalidTables(Exception):
     def __init__(self):
-        super().__init__(f"A table input does not exist!")
+        super().__init__("A table input does not exist!")
 
 class GenericRatingNotFound(RollbackError):
     """A player or chart rating was not found"""

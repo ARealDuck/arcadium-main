@@ -1,4 +1,4 @@
-from app.core.enums import ClearTypes, LAMP_ORDER
+from app.core.enums import LAMP_ORDER, ClearTypes
 from app.models import Match
 
 LAMP_RANK = {lamp: i for i, lamp in enumerate(LAMP_ORDER)}

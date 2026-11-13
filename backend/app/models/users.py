@@ -1,13 +1,25 @@
 import uuid
 from datetime import datetime
-
-from sqlalchemy import DateTime, Index, ForeignKey, String, UniqueConstraint, func, text, ARRAY
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import JSONB
+from typing import TYPE_CHECKING
 
 from app.models.base import Base
-from app.models.matches import Match
 from app.models.charts import Chart
+from app.models.matches import Match
+from sqlalchemy import (
+    ARRAY,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.models.tokens import Token
 
 # User Model -- Self explanatory. Handles all user basic information, their Tachi API key, and seeding for initial placements.
 
