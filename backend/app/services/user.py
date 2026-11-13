@@ -163,3 +163,11 @@ def get_lamps(db: Session, user_id: int, game: str, playtype: str, ladder: str) 
     ).all()
 
     return {lamp: n for lamp, n in rows}
+
+def find_user_by_identifier(db: Session, identifier: str) -> User | None:
+    ident = identifier.strip()
+
+    if "@" in ident:
+        return db.scalar(select(User).where(func.lower(User.email) == ident.lower()))
+
+    return db.scalar(select(User).where(func.lower(User.username) == ident.lower()))

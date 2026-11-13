@@ -10,5 +10,6 @@ class Settings(BaseSettings):
     media_dir: str
     invites_required: bool = True
     admin_user_ids: list[int] = []
+    email_from: str = "Arcadium <noreply@arcadium.ac>"
 
 settings = Settings()
