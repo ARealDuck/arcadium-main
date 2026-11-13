@@ -1,8 +1,9 @@
 from datetime import date, datetime
 from typing import Literal
 
-from app.schemas.match import MatchOut
 from pydantic import BaseModel, ConfigDict
+
+from app.schemas.match import MatchOut
 
 
 class ProfileGenericOut(BaseModel):

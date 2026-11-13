@@ -1,9 +1,10 @@
 from datetime import datetime
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 from app.core.enums import ClearTypes, MatchResult, MatchStatus, MatchType
 from app.schemas.auth import UserOut
 from app.schemas.chart import ChartOut
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class MatchScoreOut(BaseModel):

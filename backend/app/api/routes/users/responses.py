@@ -1,6 +1,7 @@
+from sqlalchemy.orm import Session
+
 from app.models import PlayerRating
 from app.services.match import get_standing
-from sqlalchemy.orm import Session
 
 
 def build_rating_out(db: Session, rating: PlayerRating, user_id: int) -> dict:

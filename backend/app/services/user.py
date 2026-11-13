@@ -1,10 +1,11 @@
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
 from app.core.enums import MatchStatus, MatchType
 from app.models import ChartTableLevel, Match, MatchScore, PlayerRating, User
 from app.schemas.user import RatingPointOut, TableWinrateOut
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
 
 def get_user_by_id(db: Session, id: int):

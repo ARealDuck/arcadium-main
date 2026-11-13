@@ -1,9 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.core.security import hash_token, new_session_token
 from app.models import User, UserSession
-from sqlalchemy.orm import Session
 
 
 def create_session(db: Session, user: User) -> str:

@@ -1,6 +1,10 @@
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
+from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
+from sqlalchemy import select
+
 from app.api.dependencies import AdminUser, CurrentUser, DbSession
 from app.core.enums import CancelReason, MatchStatus, MatchType
 from app.core.errors import InvalidTables, MatchNotFound, RollbackError, SeedPending
@@ -21,9 +25,6 @@ from app.services.match import (
 )
 from app.services.rating import get_player_rating
 from app.services.tables import valid_table_icons
-from fastapi import APIRouter, HTTPException, Query, status
-from fastapi.responses import HTMLResponse
-from sqlalchemy import select
 
 router = APIRouter(prefix="/match", tags=["match"])
 

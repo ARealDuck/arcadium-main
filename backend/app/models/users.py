@@ -2,9 +2,6 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from app.models.base import Base
-from app.models.charts import Chart
-from app.models.matches import Match
 from sqlalchemy import (
     ARRAY,
     DateTime,
@@ -17,6 +14,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.base import Base
+from app.models.charts import Chart
+from app.models.matches import Match
 
 if TYPE_CHECKING:
     from app.models.tokens import Token

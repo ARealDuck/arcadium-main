@@ -1,13 +1,14 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Query
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
+
 from app.api.dependencies import DbSession
 from app.logic.ratings import ELO_FLOOR
 from app.models import Chart, ChartRating, ChartTableLevel
 from app.schemas.chart import ChartOut
 from app.services.match import SEARCH_WINDOW_START
-from fastapi import APIRouter, Query
-from sqlalchemy import func, select
-from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/chart", tags=["chart"])
 

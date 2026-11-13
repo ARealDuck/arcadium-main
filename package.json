@@ -13,6 +13,10 @@
         "migrate": "docker compose exec backend alembic upgrade head",
         "makemigration": "docker compose exec backend alembic revision --autogenerate -m",
         "rollback": "docker compose exec backend alembic downgrade -1",
-        "seed": "docker compose exec backend python -m scripts.seed"
+        "seed": "docker compose exec backend python -m scripts.seed",
+        "tsc": "docker compose exec frontend npx tsc",
+        "pyright": "docker compose exec backend pyright",
+        "ruff": "docker compose exec backend ruff check .",
+        "ruff-fix": "docker compose exec backend ruff check . --fix"
     }
 }

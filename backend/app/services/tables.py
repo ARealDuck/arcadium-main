@@ -1,8 +1,9 @@
 from functools import lru_cache
 
+from sqlalchemy import select
+
 from app.core.db import SessionLocal
 from app.models import ChartTableLevel
-from sqlalchemy import select
 
 
 @lru_cache(maxsize=1)

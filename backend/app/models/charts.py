@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from app.models.base import Base
-from app.models.matches import Match
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.base import Base
+from app.models.matches import Match
 
 # Chart Model -- A chart can be considered a single "difficulty" for a song within rhythm games. It handles the notes 
 # and the basic metadata. chart_id and song_id (as well as some other attributes) are based on Tachi's ID systems. For

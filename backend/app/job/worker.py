@@ -1,10 +1,11 @@
 import time
 import traceback
 
+from sqlalchemy import func, select
+
 from app.core.db import SessionLocal
 from app.job.handlers import HANDLERS, JobError
 from app.models import Job
-from sqlalchemy import func, select
 
 REQUESTS_PER_MINUTE = 60
 DELAY_BETWEEN_JOBS = 60 / REQUESTS_PER_MINUTE

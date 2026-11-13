@@ -1,13 +1,14 @@
 from typing import Annotated
 
+from fastapi import Depends, HTTPException, Request, Response, status
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.core.db import get_db
 from app.core.security import hash_token
 from app.models import User, UserSession
 from app.services.auth import create_session
-from fastapi import Cookie, Depends, HTTPException, Request, Response, status
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session, selectinload
 
 COOKIE_NAME = "session"
 DbSession = Annotated[Session, Depends(get_db)]

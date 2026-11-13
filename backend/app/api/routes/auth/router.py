@@ -4,7 +4,18 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from app.api.dependencies import COOKIE_NAME, CurrentSession, CurrentUser, DbSession, set_session_cookie
+from fastapi import APIRouter, Cookie, HTTPException, Response, UploadFile, status
+from PIL import Image, ImageOps, UnidentifiedImageError
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
+
+from app.api.dependencies import (
+    COOKIE_NAME,
+    CurrentSession,
+    CurrentUser,
+    DbSession,
+    set_session_cookie,
+)
 from app.api.routes.auth.responses import build_user_out
 from app.config import settings
 from app.core.constants import ALLOWED_FORMATS, MAX_AVATAR_BYTES, MAX_IMAGE_PIXELS
@@ -20,10 +31,6 @@ from app.models.invites import Invite
 from app.models.tokens import Token
 from app.schemas.auth import EmailIn, LoginIn, PasswordIn, RegisterIn, UserOut
 from app.schemas.job import JobOut
-from fastapi import APIRouter, Cookie, HTTPException, Response, UploadFile, status
-from PIL import Image, ImageOps, UnidentifiedImageError
-from sqlalchemy import delete, func, select
-from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS

@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
 
-from app.models.jobs import Job
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from app.models.jobs import Job
 
 ACTIVE_STATUSES = ("pending", "running")
 

@@ -1,6 +1,10 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import func, select
+from sqlalchemy import update as sqlUpdate
+from sqlalchemy.orm import Session
+
 from app.core.enums import ClearTypes, MatchResult, MatchStatus, MatchType
 from app.core.errors import (
     ChartNotFoundForRating,
@@ -18,9 +22,6 @@ from app.models import Chart, ChartRating, ChartTableLevel, Match, PlayerRating,
 from app.services.rating import get_chart_rating, get_player_rating, seed_player_rating
 from app.services.streaks import effective_rd
 from app.services.tachi import get_recent_scores, score_from_tachi, score_time
-from sqlalchemy import func, select
-from sqlalchemy import update as sqlUpdate
-from sqlalchemy.orm import Session
 
 MAX_SEARCH_WINDOW = 300
 SEARCH_WINDOW_INCREMENT = 50

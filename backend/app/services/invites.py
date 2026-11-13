@@ -1,9 +1,10 @@
 from datetime import UTC, datetime
 
-from app.models.invites import Invite
-from app.models.users import User
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+
+from app.models.invites import Invite
+from app.models.users import User
 
 INVITES_ON_JOIN = 5
 INVITES_PER_MONTH = 3

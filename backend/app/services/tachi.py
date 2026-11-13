@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import httpx
+
 from app.models import MatchScore
 
 TACHI_BASE = "https://boku.tachi.ac/api/v1"

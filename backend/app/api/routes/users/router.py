@@ -1,3 +1,8 @@
+from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse, Response
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
+
 from app.api.dependencies import CurrentUser, DbSession
 from app.api.routes.users.responses import build_rating_out
 from app.core.constants import SEED_PRESETS
@@ -37,10 +42,6 @@ from app.services.user import (
     get_table_winrates,
     get_user_by_id,
 )
-from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import JSONResponse, Response
-from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/users", tags=["users"])
 

@@ -3,6 +3,8 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 import resend
+from sqlalchemy import func, update
+
 from app.config import settings
 from app.core.enums import ClearTypes, MatchStatus, TokenPurpose
 from app.core.errors import MatchNotFound
@@ -16,7 +18,6 @@ from app.services.match import (
     resolve_match,
 )
 from app.services.tachi import TachiError, tachi_get
-from sqlalchemy import func, update
 
 
 class JobError(Exception):
