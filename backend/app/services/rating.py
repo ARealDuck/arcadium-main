@@ -31,7 +31,7 @@ def get_player_rating(db: Session, user_id: int, game: str, playtype: str, ladde
         )
     )
 
-def get_chart_rating(db: Session, chart_id: str, ladder: str) -> ChartRating:
+def get_chart_rating(db: Session, chart_id: str, ladder: str) -> ChartRating | None:
     return db.scalar(
         select(ChartRating).where(
             ChartRating.chart_id == chart_id,

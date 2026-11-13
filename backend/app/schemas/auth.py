@@ -25,7 +25,7 @@ class RegisterIn(BaseModel):
 
     @field_validator("display_name")
     @classmethod
-    def clean_display_name(cls, value: str | None) -> str:
+    def clean_display_name(cls, value: str | None) -> str | None:
         if value is None:
             return None
         value = unicodedata.normalize("NFC", value)

@@ -7,11 +7,15 @@ from sqlalchemy.orm import Session
 
 from app.core.enums import ClearTypes, MatchResult, MatchStatus, MatchType
 from app.core.errors import (
+    ChartNotFound,
     ChartNotFoundForRating,
     GenericRatingNotFound,
     MatchNotFound,
     MatchNotRollbackable,
+    PlayerHasNoTachiKey,
     PlayerNotFound,
+    RatingNotFoundForChart,
+    RatingNotFoundForPlayer,
     SeedPending,
 )
 from app.job.enqueue import enqueue_match_final_check, enqueue_tachi_seed
@@ -123,8 +127,8 @@ def search_for_chart(db: Session, search_rating: float, ladder: str, tables: lis
     return None
 
 # This gets run for EVERYTHING that concludes matches. Such as forfeit, winning, losing, time ending, etc. Anytime we want to end a match legitimately, it should go through here.
-def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) -> dict:
-    match: Match = db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) -> dict | None:
+    match: Match | None = db.scalar(select(Match).where(Match.id == match_id).with_for_update())
 
     if match is None:
         raise MatchNotFound(match_id)
@@ -148,6 +152,12 @@ def resolve_match(db: Session, match_id: int, won: bool, evidence: dict | None) 
 def apply_rating_update(db: Session, match: Match, won: bool):
     player = get_player_rating(db, match.user_id, match.game, match.playtype, match.ladder)
     chart = get_chart_rating(db, match.chart_id, match.ladder)
+
+    if player is None:
+        raise PlayerNotFound(match.user_id)
+
+    if chart is None:
+        raise ChartNotFound(match.chart_id)
 
     s = float(won)
 
@@ -258,11 +268,17 @@ def calculate_stakes(db: Session, user: User, match: Match) -> tuple[float, floa
         None,
     )
 
-    chart_rating : ChartRating = next(
+    if rating is None:
+        raise RatingNotFoundForPlayer(user.id)
+
+    chart_rating : ChartRating | None = next(
         (r for r in match.chart.ratings
         if r.ladder == match.ladder),
         None,
     )
+
+    if chart_rating is None:
+        raise RatingNotFoundForChart(match.chart_id)
 
     rd = effective_rd(db, rating, user.id, match.ladder, match.game, match.playtype)
 
@@ -280,6 +296,9 @@ def scores_for_match(scores: list[dict], match: Match) -> list[dict]:
     ]
 
 def get_best_score_for_match(user: User, match: Match):
+
+    if user.tachi_api_key is None:
+        raise PlayerHasNoTachiKey(user.id)
 
     scores = get_recent_scores(user.tachi_api_key, match.playtype)
     candidates = scores_for_match(scores, match)
@@ -314,7 +333,10 @@ def rollback_match(db: Session, match_id: int):
     if user is None:
         raise PlayerNotFound(match.user_id)
 
-    if match.player_display_after is None or match.chart_rating_after is None:
+    if (
+        match.player_display_before is None or match.player_display_after is None
+        or match.chart_rating_before is None or match.chart_rating_after is None
+    ):
         raise MatchNotRollbackable(match_id)
 
     adjustment = match.player_display_after - match.player_display_before
@@ -322,10 +344,10 @@ def rollback_match(db: Session, match_id: int):
     player_rd_adjustment = 0
     chart_rd_adjustment = 0
 
-    if match.player_rd_after is not None:
+    if match.player_rd_before is not None and match.player_rd_after is not None:
         player_rd_adjustment = match.player_rd_after - match.player_rd_before
 
-    if match.chart_rd_after is not None:
+    if match.chart_rd_before is not None and match.chart_rd_after is not None:
         chart_rd_adjustment = match.chart_rd_after - match.chart_rd_before
 
     user_rating = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)

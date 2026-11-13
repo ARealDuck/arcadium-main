@@ -8,7 +8,7 @@ LADDER_REQUIREMENT = {
     "hc": ClearTypes.HARD_CLEAR
 }
 
-def meets_match_clear_requirements(lamp: str, ladder: str) -> bool:
+def meets_match_clear_requirements(lamp: ClearTypes, ladder: str) -> bool:
     return LAMP_RANK.get(lamp, -1) >= LAMP_RANK[LADDER_REQUIREMENT[ladder]]
 
 def clears_for_match(scores: list[dict], match: Match):

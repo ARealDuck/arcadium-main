@@ -14,9 +14,9 @@
         "makemigration": "docker compose exec backend alembic revision --autogenerate -m",
         "rollback": "docker compose exec backend alembic downgrade -1",
         "seed": "docker compose exec backend python -m scripts.seed",
-        "tsc": "docker compose exec frontend npx tsc",
-        "pyright": "docker compose exec backend pyright",
-        "ruff": "docker compose exec backend ruff check .",
-        "ruff-fix": "docker compose exec backend ruff check . --fix"
+        "lint-frontend": "docker compose exec frontend npx tsc -b",
+        "lint-backend": "docker compose exec backend ruff check . && docker compose exec backend pyright",
+        "lint-backend-fix": "docker compose exec backend ruff check . --fix && docker compose exec backend pyright",
+        "lint": "npm run lint-frontend && npm run lint-backend"
     }
 }

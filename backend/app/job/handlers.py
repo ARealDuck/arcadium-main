@@ -18,7 +18,6 @@ from app.services.match import (
     resolve_match,
 )
 from app.services.tachi import TachiError, tachi_get
-from app.services.user import find_user_by_identifier
 
 
 class JobError(Exception):

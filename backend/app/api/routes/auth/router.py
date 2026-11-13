@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Cookie, HTTPException, Response, UploadFile, status
 from PIL import Image, ImageOps, UnidentifiedImageError
-from pydantic import Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
@@ -31,7 +30,15 @@ from app.job.enqueue import (
 from app.models import User, UserSession
 from app.models.invites import Invite
 from app.models.tokens import Token
-from app.schemas.auth import EmailIn, ForgotIn, LoginIn, PasswordIn, RegisterIn, ResetIn, UserOut
+from app.schemas.auth import (
+    EmailIn,
+    ForgotIn,
+    LoginIn,
+    PasswordIn,
+    RegisterIn,
+    ResetIn,
+    UserOut,
+)
 from app.schemas.job import JobOut
 from app.services.user import find_user_by_identifier
 
@@ -107,11 +114,6 @@ def login(body: LoginIn, response: Response, db: DbSession):
     db.commit()
     db.refresh(user)
 
-    has_tachi_api_key = False
-
-    if user.tachi_api_key != "" or user.tachi_api_key is not None:
-        has_tachi_api_key = True
-
     user_out = build_user_out(user)
 
     return user_out
@@ -129,8 +131,6 @@ def logout(
 
 @router.get("/me", response_model=UserOut)
 def me(user: CurrentUser):
-    has_tachi_key = bool(user.tachi_api_key)
-
     return build_user_out(user)
 # Allows a user to link their tachi account. Once this is done, a job is queued to seed them behind the scenes.
 
@@ -173,8 +173,8 @@ def confirm_tachi_key(tachi_key: str, user: CurrentUser, db: DbSession):
 
 @router.put('/me/finish_onboarding', status_code=200)
 def finish_onboarding(user: CurrentUser, db: DbSession):
-    if user.tachi_api_key.strip() == "" or user.tachi_api_key is None:
-        raise HTTPException("Link your tachi key first!")
+    if not (user.tachi_api_key or "").strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Link your tachi key first!")
 
     if user.onboarded_at is None:
         user.onboarded_at = datetime.now(UTC)

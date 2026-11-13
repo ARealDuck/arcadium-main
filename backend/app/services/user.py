@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
@@ -38,7 +39,7 @@ def get_rank_on_ladder(db: Session, rating: PlayerRating):
 
     higher = db.scalar(
         select(func.count()).where(*same_ladder, PlayerRating.display_rating > rating.display_rating)
-    )
+    ) or 0
 
     total = db.scalar(select(func.count()).where(*same_ladder))
 
@@ -105,7 +106,7 @@ def get_table_winrates(db: Session, user_id: int, game: str, playtype: str, ladd
 
     return [TableWinrateOut(table_icon=r.table_icon, games=r.games, wins=r.wins) for r in rows]
 
-def get_latest_matches(db: Session, user_id: int, game: str, playtype: str, ladder: str, limit: int = 20) -> list[Match]:
+def get_latest_matches(db: Session, user_id: int, game: str, playtype: str, ladder: str, limit: int = 20) -> Sequence[Match]:
     latest_matches = db.scalars(
         select(Match)
         .where(

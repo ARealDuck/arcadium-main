@@ -20,6 +20,7 @@ from app.schemas.user import (
     BMSProfileOut,
     LadderStatsOut,
     ProfileGenericOut,
+    ProfilePlayerRatingOut,
     SeedOptionOut,
     SeedOptionsOut,
     SettingsOut,
@@ -95,6 +96,10 @@ def set_up_user_rating(db: DbSession, user: CurrentUser, game: str, playtype: st
     except IntegrityError:
         db.rollback()
         rating = get_player_rating(db, user.id, game, playtype, ladder)
+
+    if rating is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "An error occurred processing a rating.")
+    
     response.status_code = status.HTTP_201_CREATED
     return build_rating_out(db, rating, user.id)
 
@@ -136,8 +141,11 @@ def get_table_search_counts(db: DbSession, user: CurrentUser, game: str, playtyp
 
     rating = find_rating_for_filter(user.ratings, game, playtype, ladder)
 
-    low = max(ELO_FLOOR, rating["display_rating"] - SEARCH_WINDOW_START)
-    high = rating["display_rating"] + SEARCH_WINDOW_START
+    if rating is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "A rating for this user doesn't exist.")
+
+    low = max(ELO_FLOOR, rating.display_rating - SEARCH_WINDOW_START)
+    high = rating.display_rating + SEARCH_WINDOW_START
 
     search = (
         select(
@@ -176,7 +184,7 @@ def get_profile_info(db: DbSession, id: int, game: str, playtype: str, ladder: s
     if player_rating is None:
         return UserProfileInfoOut(
             generic=profile_generic,
-            ratings=user.ratings
+            ratings=[ProfilePlayerRatingOut.model_validate(r) for r in user.ratings]
         )
 
     rank, total = get_rank_on_ladder(db, player_rating)
@@ -187,11 +195,11 @@ def get_profile_info(db: DbSession, id: int, game: str, playtype: str, ladder: s
     activity = get_activity(db, user.id, game, playtype, ladder)
     lamp_counts = get_lamps(db, user.id, game, playtype, ladder)
 
-    ladder_stats = LadderStatsOut(rating_series=rating_series, matches=latest_matches, activity=activity, lamp_counts=lamp_counts)
+    ladder_stats = LadderStatsOut(rating_series=rating_series, matches=[MatchOut.model_validate(r) for r in latest_matches], activity=activity, lamp_counts=lamp_counts)
 
     return UserProfileInfoOut(
         generic=profile_generic,
-        ratings=user.ratings,
+        ratings=[ProfilePlayerRatingOut.model_validate(r) for r in user.ratings],
         ladder_stats=ladder_stats,
         rating_rank=rank,
         rating_total=total,

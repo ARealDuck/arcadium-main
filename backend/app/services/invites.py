@@ -22,4 +22,4 @@ def invites_available(db: Session, user: User):
         select(func.count()).select_from(Invite).where(Invite.created_by == user.id, Invite.is_admin_grant.is_(False))
     )
     earned = INVITES_ON_JOIN + INVITES_PER_MONTH * months_since(user.created_at)
-    return max(earned - created, 0)
+    return max(earned - (created or 0), 0)

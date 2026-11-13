@@ -43,20 +43,19 @@ def initial_rating(seed: dict | None, ladder: str) -> tuple[float, float]:
     rd = seed_rd(seed["numScores"] if seed else None)
     return elo, rd
 
-def find_rating_for_filter(ratings: list[PlayerRating], game: str, playtype: str, ladder: str) -> PlayerRating:
+def find_rating_for_filter(ratings: list[PlayerRating], game: str, playtype: str, ladder: str) -> PlayerRating | None:
     for rating in ratings:
 
         if rating.game == game and rating.playtype == playtype and rating.ladder == ladder:
-
-            return {
-                "game": rating.game,
-                "playtype": rating.playtype,
-                "ladder": rating.ladder,
-                "display_rating": rating.display_rating,
-                "placed": rating.placed,
-                "games_played": rating.games_played,
-                "selected_tables": rating.selected_tables
-            }
+            return PlayerRating(
+                game=rating.game,
+                playtype=rating.playtype,
+                ladder=rating.ladder,
+                display_rating=rating.display_rating,
+                placed=rating.placed,
+                games_played=rating.games_played,
+                selected_tables=rating.selected_tables
+            )
 
     return None
 

@@ -35,7 +35,7 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(32))
     username: Mapped[str] = mapped_column(String(20))
     tachi_api_key: Mapped[str | None] = mapped_column(String(255))
-    email: Mapped[str | None] = mapped_column(String(255))
+    email: Mapped[str] = mapped_column(String(255), unique=True)
     email_verified: Mapped[bool] = mapped_column(default=False)
     password_hash: Mapped[str | None] = mapped_column(String(255))
     avatar_url: Mapped[str | None]

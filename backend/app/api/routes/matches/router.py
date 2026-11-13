@@ -37,9 +37,15 @@ def get_match_by_id(db: DbSession, match_id: int):
     
     user = db.get(User, match.user_id)
 
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
     pt_gain, pt_loss = calculate_stakes(db, user, match)
 
-    user_rating: PlayerRating = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)
+    user_rating: PlayerRating | None = get_player_rating(db, user.id, match.game, match.playtype, match.ladder)
+
+    if user_rating is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Player does not appear to have any ratings on this match's ladder.")
 
     placement = PlacementOut(played=user_rating.games_played, required=5) if user_rating.games_played <= 5 else None
 
@@ -111,7 +117,10 @@ def skip_active_match(db: DbSession, user: CurrentUser):
 
     rating = find_rating_for_filter(user.ratings, active_match.game, active_match.playtype, active_match.ladder)
 
-    new_match = create_match(db, user, active_match.game, active_match.playtype, active_match.ladder, active_match.type, active_match.search_elo, rating["selected_tables"], [a.chart_id for a in user.avoided_charts])
+    if rating is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "The user in this match has no available ratings.")
+
+    new_match = create_match(db, user, active_match.game, active_match.playtype, active_match.ladder, active_match.type, active_match.search_elo, rating.selected_tables, [a.chart_id for a in user.avoided_charts])
 
     pt_gain, pt_loss = calculate_stakes(db, user, new_match)
 
