@@ -273,6 +273,9 @@ def change_email(db: DbSession, body: EmailIn, user: CurrentUser):
 @router.put("/me/password", status_code=200)
 def change_password(db: DbSession, session: CurrentSession, body: PasswordIn, user: CurrentUser):
 
+    if not user.email_verified:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your email must be verified to change your password.")
+
     valid, _ = verify_password(body.old_password, user.password_hash)
 
     if not valid:
